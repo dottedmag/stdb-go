@@ -208,7 +208,6 @@ release:publish:
   needs:
     - job: release:binaries
       artifacts: true
-    - job: release:upload-packages
   before_script:
     - |
       echo "Installing release-cli and chglog..."
