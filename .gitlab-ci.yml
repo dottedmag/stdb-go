@@ -1,0 +1,263 @@
+# GitLab CI/CD Pipeline for stdb-gen
+# Stages: test, build, release
+
+stages:
+  - test
+  - build
+  - release
+
+variables:
+  # Go settings
+  GOPATH: ${CI_PROJECT_DIR}/.go
+  GOCACHE: ${CI_PROJECT_DIR}/.go/cache
+  GO_VERSION: "1.25"
+
+  # Binary settings
+  BINARY_NAME: stdb-gen
+
+# Cache configuration for Go modules
+.go-cache: &go-cache
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-go
+    paths:
+      - .go/pkg/mod/
+      - .go/cache/
+
+# Common job settings
+.go-job: &go-job
+  image: golang:${GO_VERSION}
+  <<: *go-cache
+  before_script:
+    - mkdir -p ${GOPATH}
+
+# =============================================================================
+# TEST STAGE
+# =============================================================================
+
+test:unit:
+  <<: *go-job
+  stage: test
+  script:
+    - go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+    - go tool cover -func=coverage.out
+  coverage: '/total:\s+\(statements\)\s+(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.out
+    paths:
+      - coverage.out
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null'
+
+test:lint:
+  <<: *go-job
+  stage: test
+  image: golangci/golangci-lint:latest
+  script:
+    - golangci-lint run --timeout 5m ./...
+    - go vet ./...
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null'
+
+test:modules:
+  <<: *go-job
+  stage: test
+  script:
+    - go mod verify
+    - go mod tidy -diff
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null'
+
+# =============================================================================
+# BUILD STAGE
+# =============================================================================
+
+build:binary:
+  <<: *go-job
+  stage: build
+  script:
+    - |
+      VERSION=${CI_COMMIT_TAG:-$(git describe --tags --always --dirty 2>/dev/null || echo "dev")}
+      COMMIT=${CI_COMMIT_SHORT_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")}
+      LDFLAGS="-X main.version=${VERSION} -X main.commit=${COMMIT}"
+    - CGO_ENABLED=0 go build -ldflags "${LDFLAGS}" -o ${BINARY_NAME} .
+    - ./${BINARY_NAME} version
+  artifacts:
+    paths:
+      - ${BINARY_NAME}
+    expire_in: 1 day
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null'
+
+# =============================================================================
+# RELEASE STAGE
+# =============================================================================
+
+# Auto-tag new versions (manual trigger on main branch)
+release:tag:
+  stage: release
+  <<: *go-job
+  variables:
+    GIT_STRATEGY: clone
+    GIT_DEPTH: 0
+  before_script:
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git remote set-url origin "https://oauth2:${GL_TOKEN}@${CI_REPOSITORY_URL#*@}"
+    - git fetch --tags --prune
+    - |
+      echo "Installing SVU and chglog..."
+      go install github.com/caarlos0/svu/v3@latest
+      go install github.com/goreleaser/chglog/cmd/chglog@latest
+      export PATH=$PATH:$(go env GOPATH)/bin
+  script:
+    - |
+      export PATH=$PATH:$(go env GOPATH)/bin
+
+      echo "Calculating next version..."
+      CURRENT_VERSION=$(svu c || echo "v0.0.0")
+      echo "Current version: ${CURRENT_VERSION}"
+      git checkout main
+
+      NEXT_VERSION=$(svu next 2>/dev/null || echo "")
+
+      if [ -z "$NEXT_VERSION" ] || [ "$NEXT_VERSION" == "$CURRENT_VERSION" ]; then
+        echo "No version bump needed (current: ${CURRENT_VERSION})"
+        exit 0
+      fi
+
+      echo "Next version: ${NEXT_VERSION}"
+
+      chglog init 2>/dev/null || true
+      chglog add --version "${NEXT_VERSION}"
+      chglog format --template repo > CHANGELOG.md
+      git add CHANGELOG.md changelog.yml
+      git commit -m "chore: update changelog" || echo "No changes to commit"
+
+      echo "Creating tag ${NEXT_VERSION}..."
+      git tag -a "${NEXT_VERSION}" -m "Release ${NEXT_VERSION}"
+
+      echo "Pushing changelog to main (skip CI)..."
+      git push origin main -o ci.skip
+
+      echo "Pushing tag to repository (triggers release pipeline)..."
+      git push origin "${NEXT_VERSION}"
+
+      echo "Successfully tagged release ${NEXT_VERSION}"
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Build release binaries for multiple platforms
+release:binaries:
+  <<: *go-job
+  stage: release
+  parallel:
+    matrix:
+      - GOOS: linux
+        GOARCH: amd64
+      - GOOS: linux
+        GOARCH: arm64
+      - GOOS: darwin
+        GOARCH: amd64
+      - GOOS: darwin
+        GOARCH: arm64
+      - GOOS: windows
+        GOARCH: amd64
+  script:
+    - echo "Building ${BINARY_NAME} for ${GOOS}/${GOARCH}..."
+    - mkdir -p build
+    - |
+      EXTENSION=""
+      if [ "$GOOS" = "windows" ]; then
+        EXTENSION=".exe"
+      fi
+      OUTPUT="build/${BINARY_NAME}-${GOOS}-${GOARCH}${EXTENSION}"
+
+      CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath -tags osusergo,netgo \
+        -ldflags "-extldflags=-static -s -w -X main.version=${CI_COMMIT_TAG} -X main.commit=${CI_COMMIT_SHORT_SHA}" \
+        -o "${OUTPUT}" \
+        .
+
+      echo "Built: ${OUTPUT}"
+      ls -la "${OUTPUT}"
+    - |
+      # Generate checksum
+      cd build
+      BINARY_FILE="${BINARY_NAME}-${GOOS}-${GOARCH}${EXTENSION}"
+      sha256sum "${BINARY_FILE}" > "${BINARY_FILE}.sha256"
+  artifacts:
+    paths:
+      - build/
+    expire_in: 1 week
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
+
+# Create GitLab Release with asset links
+release:publish:
+  <<: *go-job
+  stage: release
+  needs:
+    - job: release:binaries
+      artifacts: true
+    - job: release:upload-packages
+  before_script:
+    - |
+      echo "Installing release-cli and chglog..."
+      go install gitlab.com/gitlab-org/release-cli/cmd/release-cli@latest
+      go install github.com/goreleaser/chglog/cmd/chglog@latest
+      export PATH=$PATH:$(go env GOPATH)/bin
+  script:
+    - |
+      export PATH=$PATH:$(go env GOPATH)/bin
+
+      echo "Preparing release assets..."
+      ls -la build/
+
+    - echo "Uploading binaries to GitLab Package Registry..."
+    - |
+      for file in build/${BINARY_NAME}-*; do
+        if [[ "$file" != *.sha256 ]]; then
+          FILENAME=$(basename "$file")
+          echo "Uploading: $FILENAME"
+          curl --fail-with-body \
+            --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+            --upload-file "$file" \
+            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${BINARY_NAME}/${CI_COMMIT_TAG}/${FILENAME}"
+        fi
+      done
+
+    - echo "Upload complete."
+
+    - |
+      echo "Generating release notes..."
+      if [ -f changelog.yml ]; then
+        chglog format --template release > RELEASE_NOTES.md
+      else
+        echo "## ${CI_COMMIT_TAG}" > RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "Release ${CI_COMMIT_TAG}" >> RELEASE_NOTES.md
+      fi
+
+      echo "Creating GitLab release with package registry asset links..."
+      PACKAGE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${BINARY_NAME}/${CI_COMMIT_TAG}"
+
+      release-cli create \
+        --name "Release ${CI_COMMIT_TAG}" \
+        --tag-name "${CI_COMMIT_TAG}" \
+        --description "$(cat RELEASE_NOTES.md)" \
+        --assets-link "{\"name\":\"linux-amd64\",\"url\":\"${PACKAGE_URL}/${BINARY_NAME}-linux-amd64\"}" \
+        --assets-link "{\"name\":\"linux-arm64\",\"url\":\"${PACKAGE_URL}/${BINARY_NAME}-linux-arm64\"}" \
+        --assets-link "{\"name\":\"darwin-amd64\",\"url\":\"${PACKAGE_URL}/${BINARY_NAME}-darwin-amd64\"}" \
+        --assets-link "{\"name\":\"darwin-arm64\",\"url\":\"${PACKAGE_URL}/${BINARY_NAME}-darwin-arm64\"}" \
+        --assets-link "{\"name\":\"windows-amd64\",\"url\":\"${PACKAGE_URL}/${BINARY_NAME}-windows-amd64.exe\"}"
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
