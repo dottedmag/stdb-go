@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 )
 
 // ParsedModule is the intermediate representation produced by parsing.
@@ -130,8 +131,8 @@ type ParsedSchedule struct {
 	FunctionName string
 }
 
-// parseDirectory parses all .go files in the directory and extracts //stdb: directives.
-func parseDirectory(dir string) (*ParsedModule, error) {
+// ParseDirectory parses all .go files in the directory and extracts //stdb: directives.
+func ParseDirectory(dir string) (*ParsedModule, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("read dir: %w", err)
@@ -608,6 +609,28 @@ func funcReturnsError(ft *ast.FuncType) bool {
 	// Check the last return value.
 	lastField := ft.Results.List[ft.Results.NumFields()-1]
 	return typeExprToString(lastField.Type) == "error"
+}
+
+// toSnakeCase converts a PascalCase or camelCase string to snake_case.
+func toSnakeCase(s string) string {
+	var b strings.Builder
+	runes := []rune(s)
+	for i, r := range runes {
+		if unicode.IsUpper(r) {
+			if i > 0 {
+				prev := runes[i-1]
+				if unicode.IsLower(prev) || unicode.IsDigit(prev) {
+					b.WriteRune('_')
+				} else if unicode.IsUpper(prev) && i+1 < len(runes) && unicode.IsLower(runes[i+1]) {
+					b.WriteRune('_')
+				}
+			}
+			b.WriteRune(unicode.ToLower(r))
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // parseMultiColIndex parses an index specification like "name:col0,col1,col2".

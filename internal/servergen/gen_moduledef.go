@@ -1,8 +1,10 @@
-package main
+package servergen
 
 import (
 	"fmt"
 	"strings"
+
+	"go.digitalxero.dev/stdb-go/internal/parser"
 )
 
 // generateModuleDef generates the stdbDescribeModule function that builds the
@@ -280,7 +282,7 @@ func writeViewDef(w *strings.Builder, v *AnalyzedView, module *AnalyzedModule) {
 }
 
 // writeScheduleDef writes code to add a ScheduleDef.
-func writeScheduleDef(w *strings.Builder, sched *ParsedSchedule, module *AnalyzedModule) {
+func writeScheduleDef(w *strings.Builder, sched *parser.ParsedSchedule, module *AnalyzedModule) {
 	// Find the ScheduleAt column index.
 	var schedAtCol uint16
 	for _, table := range module.Tables {

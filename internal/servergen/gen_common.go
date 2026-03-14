@@ -1,36 +1,10 @@
-package main
+package servergen
 
 import (
 	"fmt"
 	"sort"
 	"strings"
-	"unicode"
 )
-
-// toSnakeCase converts PascalCase/camelCase to snake_case.
-// Examples: "EntityId" -> "entity_id", "HTTPClient" -> "http_client"
-func toSnakeCase(s string) string {
-	var b strings.Builder
-	runes := []rune(s)
-	for i, r := range runes {
-		if unicode.IsUpper(r) {
-			if i > 0 {
-				prev := runes[i-1]
-				// Insert underscore before uppercase if preceded by lowercase,
-				// or if preceded by uppercase and followed by lowercase (e.g., "HTTPClient" -> "HTTP_Client").
-				if unicode.IsLower(prev) || unicode.IsDigit(prev) {
-					b.WriteRune('_')
-				} else if unicode.IsUpper(prev) && i+1 < len(runes) && unicode.IsLower(runes[i+1]) {
-					b.WriteRune('_')
-				}
-			}
-			b.WriteRune(unicode.ToLower(r))
-		} else {
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
-}
 
 // fileHeader returns the standard generated file header.
 func fileHeader(pkgName string) string {

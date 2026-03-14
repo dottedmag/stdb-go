@@ -1,4 +1,4 @@
-package main
+package servergen
 
 import (
 	"sort"
@@ -8,31 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestToSnakeCase(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"EntityId", "entity_id"},
-		{"HTTPServer", "http_server"},
-		{"HTMLParser", "html_parser"},
-		{"camelCase", "camel_case"},
-		{"simple", "simple"},
-		{"already_snake", "already_snake"},
-		{"ID", "id"},
-		{"TestA", "test_a"},
-		{"MyHTTPSClient", "my_https_client"},
-		{"URL2Handler", "url2_handler"},
-		{"", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input+"->"+tt.expected, func(t *testing.T) {
-			assert.Equal(t, tt.expected, toSnakeCase(tt.input))
-		})
-	}
-}
 
 func TestToPascalCase(t *testing.T) {
 	tests := []struct {
@@ -51,7 +26,7 @@ func TestToPascalCase(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input+"->"+tt.expected, func(t *testing.T) {
-			assert.Equal(t, tt.expected, toPascalCase(tt.input))
+			assert.Equal(t, tt.expected, ToPascalCase(tt.input))
 		})
 	}
 }

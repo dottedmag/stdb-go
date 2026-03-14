@@ -1,8 +1,10 @@
-package main
+package servergen
 
 import (
 	"fmt"
 	"strings"
+
+	"go.digitalxero.dev/stdb-go/internal/parser"
 )
 
 // generateTables generates table accessor types and their methods.
@@ -14,7 +16,7 @@ func generateTables(module *AnalyzedModule, w *strings.Builder) {
 
 // generateTableType generates a single table accessor type with all its methods.
 func generateTableType(module *AnalyzedModule, table *AnalyzedTable, w *strings.Builder) {
-	typeName := "stdb" + toPascalCase(table.Name) + "TableHandle"
+	typeName := "stdb" + ToPascalCase(table.Name) + "TableHandle"
 	structName := table.StructName
 
 	// Type definition.
@@ -78,7 +80,7 @@ func generateTableType(module *AnalyzedModule, table *AnalyzedTable, w *strings.
 		generateFilterByMultiColumn(module, table, typeName, structName, idx, w)
 		// Generate partial prefix methods for subsets of columns (1..N-1).
 		for prefixLen := 1; prefixLen < len(idx.Columns); prefixLen++ {
-			partialIdx := ParsedMultiColIndex{
+			partialIdx := parser.ParsedMultiColIndex{
 				Name:    idx.Name,
 				Columns: idx.Columns[:prefixLen],
 			}
@@ -251,7 +253,7 @@ func generateDeleteByIndex(module *AnalyzedModule, table *AnalyzedTable, typeNam
 }
 
 // generateFilterByMultiColumn generates a FilterByMultiColumn method.
-func generateFilterByMultiColumn(module *AnalyzedModule, table *AnalyzedTable, typeName, structName string, idx ParsedMultiColIndex, w *strings.Builder) {
+func generateFilterByMultiColumn(module *AnalyzedModule, table *AnalyzedTable, typeName, structName string, idx parser.ParsedMultiColIndex, w *strings.Builder) {
 	// Build method name from column names.
 	var colNames []string
 	for _, colIdx := range idx.Columns {

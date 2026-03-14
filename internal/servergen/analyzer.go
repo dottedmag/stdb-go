@@ -1,8 +1,10 @@
-package main
+package servergen
 
 import (
 	"fmt"
 	"strings"
+
+	"go.digitalxero.dev/stdb-go/internal/parser"
 )
 
 // AnalyzedModule is the fully resolved module ready for code generation.
@@ -15,7 +17,7 @@ type AnalyzedModule struct {
 	Views       []AnalyzedView
 	SumTypes    []AnalyzedSumType
 	Enums       []AnalyzedEnum
-	Schedules   []ParsedSchedule
+	Schedules   []parser.ParsedSchedule
 	RLS         []string
 
 	// Types maps Go type names to their analyzed type info.
@@ -121,7 +123,7 @@ type AnalyzedTable struct {
 	IsEvent      bool
 	StructName   string
 	Fields       []AnalyzedField
-	ExtraIndexes []ParsedMultiColIndex
+	ExtraIndexes []parser.ParsedMultiColIndex
 	TypespaceRef int    // typespace index for this table's struct
 	VarName      string // Go variable name for the table accessor (e.g., "EntityTable")
 }
@@ -187,8 +189,8 @@ type AnalyzedEnum struct {
 	TypespaceIdx int
 }
 
-// analyze resolves all types and validates the parsed module.
-func analyze(parsed *ParsedModule) (*AnalyzedModule, error) {
+// Analyze resolves all types and validates the parsed module.
+func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 	a := &analyzer{
 		parsed:    parsed,
 		types:     make(map[string]*AnalyzedType),
@@ -286,7 +288,7 @@ func analyze(parsed *ParsedModule) (*AnalyzedModule, error) {
 			IsEvent:      table.IsEvent,
 			StructName:   table.StructName,
 			ExtraIndexes: table.ExtraIndexes,
-			VarName:      toPascalCase(table.Name) + "Table",
+			VarName:      ToPascalCase(table.Name) + "Table",
 		}
 		if typeInfo, ok := a.types[table.StructName]; ok {
 			at.TypespaceRef = typeInfo.TypespaceIdx
@@ -411,7 +413,7 @@ func analyze(parsed *ParsedModule) (*AnalyzedModule, error) {
 
 // analyzer tracks type resolution state.
 type analyzer struct {
-	parsed    *ParsedModule
+	parsed    *parser.ParsedModule
 	types     map[string]*AnalyzedType
 	typeOrder []string
 	nextIdx   int
@@ -426,7 +428,7 @@ func (a *analyzer) reserveTypespaceSlot(name string) int {
 }
 
 // registerEnum registers a simple enum type.
-func (a *analyzer) registerEnum(enum ParsedEnum) error {
+func (a *analyzer) registerEnum(enum parser.ParsedEnum) error {
 	idx := a.reserveTypespaceSlot(enum.TypeName)
 	a.types[enum.TypeName] = &AnalyzedType{
 		Name:           enum.TypeName,
@@ -440,7 +442,7 @@ func (a *analyzer) registerEnum(enum ParsedEnum) error {
 }
 
 // registerSumType registers a sum type with its variants.
-func (a *analyzer) registerSumType(st ParsedSumType) error {
+func (a *analyzer) registerSumType(st parser.ParsedSumType) error {
 	idx := a.reserveTypespaceSlot(st.InterfaceName)
 
 	// Find all variants for this sum type.
@@ -627,8 +629,8 @@ func (a *analyzer) resolveGoType(goType string) (AlgType, error) {
 	return AlgType{}, fmt.Errorf("unsupported type %q", goType)
 }
 
-// toPascalCase converts a snake_case string to PascalCase.
-func toPascalCase(s string) string {
+// ToPascalCase converts a snake_case string to PascalCase.
+func ToPascalCase(s string) string {
 	parts := strings.Split(s, "_")
 	var b strings.Builder
 	for _, part := range parts {

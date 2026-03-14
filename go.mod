@@ -11,6 +11,8 @@ require (
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 )
 
+replace go.digitalxero.dev/spacetimedb-client => /home/djgilcrease/projects/spacetimedb-go-client
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect

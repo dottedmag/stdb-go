@@ -60,7 +60,7 @@ func runBuild(dir, output string, optimize, release, wasiShim bool) error {
 
 	// Step 1: Run code generation
 	fmt.Fprintf(os.Stderr, "build: running code generation...\n")
-	if err := runGenerate(absDir, "stdb_generated.go"); err != nil {
+	if err := runGenerateServer(absDir, "stdb_generated.go"); err != nil {
 		return fmt.Errorf("build: codegen failed: %w", err)
 	}
 

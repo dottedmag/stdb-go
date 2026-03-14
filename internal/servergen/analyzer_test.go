@@ -1,17 +1,20 @@
-package main
+package servergen_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"go.digitalxero.dev/stdb-go/internal/parser"
+	"go.digitalxero.dev/stdb-go/internal/servergen"
 )
 
 // helper to build a minimal ParsedModule with initialized maps.
-func newParsedModule() *ParsedModule {
-	return &ParsedModule{
+func newParsedModule() *parser.ParsedModule {
+	return &parser.ParsedModule{
 		PackageName: "main",
-		Structs:     make(map[string]*ParsedStruct),
+		Structs:     make(map[string]*parser.ParsedStruct),
 		TypeAliases: make(map[string]string),
 	}
 }
@@ -20,41 +23,41 @@ func newParsedModule() *ParsedModule {
 func TestAnalyzePrimitiveTypes(t *testing.T) {
 	cases := []struct {
 		goType   string
-		expected AlgKind
+		expected servergen.AlgKind
 	}{
-		{"bool", AlgKindBool},
-		{"uint8", AlgKindU8},
-		{"uint16", AlgKindU16},
-		{"uint32", AlgKindU32},
-		{"uint64", AlgKindU64},
-		{"int8", AlgKindI8},
-		{"int16", AlgKindI16},
-		{"int32", AlgKindI32},
-		{"int64", AlgKindI64},
-		{"float32", AlgKindF32},
-		{"float64", AlgKindF64},
-		{"string", AlgKindString},
+		{"bool", servergen.AlgKindBool},
+		{"uint8", servergen.AlgKindU8},
+		{"uint16", servergen.AlgKindU16},
+		{"uint32", servergen.AlgKindU32},
+		{"uint64", servergen.AlgKindU64},
+		{"int8", servergen.AlgKindI8},
+		{"int16", servergen.AlgKindI16},
+		{"int32", servergen.AlgKindI32},
+		{"int64", servergen.AlgKindI64},
+		{"float32", servergen.AlgKindF32},
+		{"float64", servergen.AlgKindF64},
+		{"string", servergen.AlgKindString},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.goType, func(t *testing.T) {
 			parsed := newParsedModule()
-			parsed.Tables = []ParsedTable{{
+			parsed.Tables = []parser.ParsedTable{{
 				Name:       "test_table",
 				Access:     "public",
 				StructName: "TestStruct",
-				Fields: []ParsedField{{
+				Fields: []parser.ParsedField{{
 					GoName: "Field", GoType: tc.goType, BsatnName: "field",
 				}},
 			}}
-			parsed.Structs["TestStruct"] = &ParsedStruct{
+			parsed.Structs["TestStruct"] = &parser.ParsedStruct{
 				Name: "TestStruct",
-				Fields: []ParsedField{{
+				Fields: []parser.ParsedField{{
 					GoName: "Field", GoType: tc.goType, BsatnName: "field",
 				}},
 			}
 
-			mod, err := analyze(parsed)
+			mod, err := servergen.Analyze(parsed)
 			require.NoError(t, err)
 			require.Len(t, mod.Tables, 1)
 			require.Len(t, mod.Tables[0].Fields, 1)
@@ -68,51 +71,51 @@ func TestAnalyzePrimitiveTypes(t *testing.T) {
 func TestAnalyzeSpecialTypes(t *testing.T) {
 	cases := []struct {
 		goType   string
-		expected AlgKind
+		expected servergen.AlgKind
 	}{
 		// Qualified forms
-		{"types.Identity", AlgKindIdentity},
-		{"types.ConnectionId", AlgKindConnectionId},
-		{"types.Timestamp", AlgKindTimestamp},
-		{"types.TimeDuration", AlgKindTimeDuration},
-		{"types.ScheduleAt", AlgKindScheduleAt},
-		{"types.Uuid", AlgKindUuid},
-		{"types.Uint128", AlgKindU128},
-		{"types.Uint256", AlgKindU256},
-		{"types.Int128", AlgKindI128},
-		{"types.Int256", AlgKindI256},
+		{"types.Identity", servergen.AlgKindIdentity},
+		{"types.ConnectionId", servergen.AlgKindConnectionId},
+		{"types.Timestamp", servergen.AlgKindTimestamp},
+		{"types.TimeDuration", servergen.AlgKindTimeDuration},
+		{"types.ScheduleAt", servergen.AlgKindScheduleAt},
+		{"types.Uuid", servergen.AlgKindUuid},
+		{"types.Uint128", servergen.AlgKindU128},
+		{"types.Uint256", servergen.AlgKindU256},
+		{"types.Int128", servergen.AlgKindI128},
+		{"types.Int256", servergen.AlgKindI256},
 		// Unqualified forms
-		{"Identity", AlgKindIdentity},
-		{"ConnectionId", AlgKindConnectionId},
-		{"Timestamp", AlgKindTimestamp},
-		{"TimeDuration", AlgKindTimeDuration},
-		{"ScheduleAt", AlgKindScheduleAt},
-		{"Uuid", AlgKindUuid},
-		{"Uint128", AlgKindU128},
-		{"Uint256", AlgKindU256},
-		{"Int128", AlgKindI128},
-		{"Int256", AlgKindI256},
+		{"Identity", servergen.AlgKindIdentity},
+		{"ConnectionId", servergen.AlgKindConnectionId},
+		{"Timestamp", servergen.AlgKindTimestamp},
+		{"TimeDuration", servergen.AlgKindTimeDuration},
+		{"ScheduleAt", servergen.AlgKindScheduleAt},
+		{"Uuid", servergen.AlgKindUuid},
+		{"Uint128", servergen.AlgKindU128},
+		{"Uint256", servergen.AlgKindU256},
+		{"Int128", servergen.AlgKindI128},
+		{"Int256", servergen.AlgKindI256},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.goType, func(t *testing.T) {
 			parsed := newParsedModule()
-			parsed.Tables = []ParsedTable{{
+			parsed.Tables = []parser.ParsedTable{{
 				Name:       "test_table",
 				Access:     "public",
 				StructName: "TestStruct",
-				Fields: []ParsedField{{
+				Fields: []parser.ParsedField{{
 					GoName: "Field", GoType: tc.goType, BsatnName: "field",
 				}},
 			}}
-			parsed.Structs["TestStruct"] = &ParsedStruct{
+			parsed.Structs["TestStruct"] = &parser.ParsedStruct{
 				Name: "TestStruct",
-				Fields: []ParsedField{{
+				Fields: []parser.ParsedField{{
 					GoName: "Field", GoType: tc.goType, BsatnName: "field",
 				}},
 			}
 
-			mod, err := analyze(parsed)
+			mod, err := servergen.Analyze(parsed)
 			require.NoError(t, err)
 			require.Len(t, mod.Tables, 1)
 			require.Len(t, mod.Tables[0].Fields, 1)
@@ -127,139 +130,139 @@ func TestAnalyzeSpecialTypes(t *testing.T) {
 func TestAnalyzeSliceType(t *testing.T) {
 	t.Run("[]uint8 is bytes", func(t *testing.T) {
 		parsed := newParsedModule()
-		parsed.Tables = []ParsedTable{{
+		parsed.Tables = []parser.ParsedTable{{
 			Name: "t", Access: "public", StructName: "S",
-			Fields: []ParsedField{{GoName: "Data", GoType: "[]uint8", BsatnName: "data"}},
+			Fields: []parser.ParsedField{{GoName: "Data", GoType: "[]uint8", BsatnName: "data"}},
 		}}
-		parsed.Structs["S"] = &ParsedStruct{
+		parsed.Structs["S"] = &parser.ParsedStruct{
 			Name:   "S",
-			Fields: []ParsedField{{GoName: "Data", GoType: "[]uint8", BsatnName: "data"}},
+			Fields: []parser.ParsedField{{GoName: "Data", GoType: "[]uint8", BsatnName: "data"}},
 		}
 
-		mod, err := analyze(parsed)
+		mod, err := servergen.Analyze(parsed)
 		require.NoError(t, err)
-		assert.Equal(t, AlgKindBytes, mod.Tables[0].Fields[0].AlgType.Kind)
+		assert.Equal(t, servergen.AlgKindBytes, mod.Tables[0].Fields[0].AlgType.Kind)
 	})
 
 	t.Run("[]byte is bytes", func(t *testing.T) {
 		parsed := newParsedModule()
-		parsed.Tables = []ParsedTable{{
+		parsed.Tables = []parser.ParsedTable{{
 			Name: "t", Access: "public", StructName: "S",
-			Fields: []ParsedField{{GoName: "Data", GoType: "[]byte", BsatnName: "data"}},
+			Fields: []parser.ParsedField{{GoName: "Data", GoType: "[]byte", BsatnName: "data"}},
 		}}
-		parsed.Structs["S"] = &ParsedStruct{
+		parsed.Structs["S"] = &parser.ParsedStruct{
 			Name:   "S",
-			Fields: []ParsedField{{GoName: "Data", GoType: "[]byte", BsatnName: "data"}},
+			Fields: []parser.ParsedField{{GoName: "Data", GoType: "[]byte", BsatnName: "data"}},
 		}
 
-		mod, err := analyze(parsed)
+		mod, err := servergen.Analyze(parsed)
 		require.NoError(t, err)
-		assert.Equal(t, AlgKindBytes, mod.Tables[0].Fields[0].AlgType.Kind)
+		assert.Equal(t, servergen.AlgKindBytes, mod.Tables[0].Fields[0].AlgType.Kind)
 	})
 
 	t.Run("[]int32 is array of I32", func(t *testing.T) {
 		parsed := newParsedModule()
-		parsed.Tables = []ParsedTable{{
+		parsed.Tables = []parser.ParsedTable{{
 			Name: "t", Access: "public", StructName: "S",
-			Fields: []ParsedField{{GoName: "Nums", GoType: "[]int32", BsatnName: "nums"}},
+			Fields: []parser.ParsedField{{GoName: "Nums", GoType: "[]int32", BsatnName: "nums"}},
 		}}
-		parsed.Structs["S"] = &ParsedStruct{
+		parsed.Structs["S"] = &parser.ParsedStruct{
 			Name:   "S",
-			Fields: []ParsedField{{GoName: "Nums", GoType: "[]int32", BsatnName: "nums"}},
+			Fields: []parser.ParsedField{{GoName: "Nums", GoType: "[]int32", BsatnName: "nums"}},
 		}
 
-		mod, err := analyze(parsed)
+		mod, err := servergen.Analyze(parsed)
 		require.NoError(t, err)
 		field := mod.Tables[0].Fields[0]
-		assert.Equal(t, AlgKindArray, field.AlgType.Kind)
+		assert.Equal(t, servergen.AlgKindArray, field.AlgType.Kind)
 		require.NotNil(t, field.AlgType.ElemType)
-		assert.Equal(t, AlgKindI32, field.AlgType.ElemType.Kind)
+		assert.Equal(t, servergen.AlgKindI32, field.AlgType.ElemType.Kind)
 	})
 }
 
 // TestAnalyzePointerType verifies that *T resolves to Option(T).
 func TestAnalyzePointerType(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "t", Access: "public", StructName: "S",
-		Fields: []ParsedField{{GoName: "OptVal", GoType: "*int32", BsatnName: "opt_val"}},
+		Fields: []parser.ParsedField{{GoName: "OptVal", GoType: "*int32", BsatnName: "opt_val"}},
 	}}
-	parsed.Structs["S"] = &ParsedStruct{
+	parsed.Structs["S"] = &parser.ParsedStruct{
 		Name:   "S",
-		Fields: []ParsedField{{GoName: "OptVal", GoType: "*int32", BsatnName: "opt_val"}},
+		Fields: []parser.ParsedField{{GoName: "OptVal", GoType: "*int32", BsatnName: "opt_val"}},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	field := mod.Tables[0].Fields[0]
-	assert.Equal(t, AlgKindOption, field.AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindOption, field.AlgType.Kind)
 	require.NotNil(t, field.AlgType.ElemType)
-	assert.Equal(t, AlgKindI32, field.AlgType.ElemType.Kind)
+	assert.Equal(t, servergen.AlgKindI32, field.AlgType.ElemType.Kind)
 }
 
 // TestAnalyzeNestedOptionSlice verifies *[]*int32 -> Option(Array(Option(I32))).
 func TestAnalyzeNestedOptionSlice(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "t", Access: "public", StructName: "S",
-		Fields: []ParsedField{{GoName: "F", GoType: "*[]*int32", BsatnName: "f"}},
+		Fields: []parser.ParsedField{{GoName: "F", GoType: "*[]*int32", BsatnName: "f"}},
 	}}
-	parsed.Structs["S"] = &ParsedStruct{
+	parsed.Structs["S"] = &parser.ParsedStruct{
 		Name:   "S",
-		Fields: []ParsedField{{GoName: "F", GoType: "*[]*int32", BsatnName: "f"}},
+		Fields: []parser.ParsedField{{GoName: "F", GoType: "*[]*int32", BsatnName: "f"}},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	field := mod.Tables[0].Fields[0]
 
 	// *[]*int32 -> Option
-	assert.Equal(t, AlgKindOption, field.AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindOption, field.AlgType.Kind)
 	require.NotNil(t, field.AlgType.ElemType)
 
 	// []*int32 -> Array
 	arr := field.AlgType.ElemType
-	assert.Equal(t, AlgKindArray, arr.Kind)
+	assert.Equal(t, servergen.AlgKindArray, arr.Kind)
 	require.NotNil(t, arr.ElemType)
 
 	// *int32 -> Option
 	opt := arr.ElemType
-	assert.Equal(t, AlgKindOption, opt.Kind)
+	assert.Equal(t, servergen.AlgKindOption, opt.Kind)
 	require.NotNil(t, opt.ElemType)
 
 	// int32 -> I32
-	assert.Equal(t, AlgKindI32, opt.ElemType.Kind)
+	assert.Equal(t, servergen.AlgKindI32, opt.ElemType.Kind)
 }
 
 // TestAnalyzeStructRef verifies that a field referencing another struct resolves to AlgKindRef.
 func TestAnalyzeStructRef(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Structs["Inner"] = &ParsedStruct{
+	parsed.Structs["Inner"] = &parser.ParsedStruct{
 		Name: "Inner",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Val", GoType: "uint32", BsatnName: "val"},
 		},
 	}
-	parsed.Structs["Outer"] = &ParsedStruct{
+	parsed.Structs["Outer"] = &parser.ParsedStruct{
 		Name: "Outer",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Nested", GoType: "Inner", BsatnName: "nested"},
 		},
 	}
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "outer_table", Access: "public", StructName: "Outer",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Nested", GoType: "Inner", BsatnName: "nested"},
 		},
 	}}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Tables, 1)
 	require.Len(t, mod.Tables[0].Fields, 1)
 
 	field := mod.Tables[0].Fields[0]
-	assert.Equal(t, AlgKindRef, field.AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindRef, field.AlgType.Kind)
 	assert.Equal(t, "Inner", field.AlgType.TypeName)
 
 	// The Inner struct should have a typespace entry.
@@ -282,16 +285,16 @@ func TestAnalyzeTableVarName(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.tableName, func(t *testing.T) {
 			parsed := newParsedModule()
-			parsed.Tables = []ParsedTable{{
+			parsed.Tables = []parser.ParsedTable{{
 				Name: tc.tableName, Access: "public", StructName: "S",
-				Fields: []ParsedField{{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true}},
+				Fields: []parser.ParsedField{{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true}},
 			}}
-			parsed.Structs["S"] = &ParsedStruct{
+			parsed.Structs["S"] = &parser.ParsedStruct{
 				Name:   "S",
-				Fields: []ParsedField{{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true}},
+				Fields: []parser.ParsedField{{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true}},
 			}
 
-			mod, err := analyze(parsed)
+			mod, err := servergen.Analyze(parsed)
 			require.NoError(t, err)
 			require.Len(t, mod.Tables, 1)
 			assert.Equal(t, tc.expected, mod.Tables[0].VarName)
@@ -302,18 +305,18 @@ func TestAnalyzeTableVarName(t *testing.T) {
 // TestAnalyzeTableFields verifies fields get correct sequential ColIndex values.
 func TestAnalyzeTableFields(t *testing.T) {
 	parsed := newParsedModule()
-	fields := []ParsedField{
+	fields := []parser.ParsedField{
 		{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true},
 		{GoName: "Name", GoType: "string", BsatnName: "name"},
 		{GoName: "Score", GoType: "int32", BsatnName: "score"},
 	}
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "players", Access: "public", StructName: "Player",
 		Fields: fields,
 	}}
-	parsed.Structs["Player"] = &ParsedStruct{Name: "Player", Fields: fields}
+	parsed.Structs["Player"] = &parser.ParsedStruct{Name: "Player", Fields: fields}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Tables, 1)
 	require.Len(t, mod.Tables[0].Fields, 3)
@@ -321,26 +324,26 @@ func TestAnalyzeTableFields(t *testing.T) {
 	for i, f := range mod.Tables[0].Fields {
 		assert.Equal(t, uint16(i), f.ColIndex, "field %s should have ColIndex %d", f.GoName, i)
 	}
-	assert.Equal(t, AlgKindU64, mod.Tables[0].Fields[0].AlgType.Kind)
-	assert.Equal(t, AlgKindString, mod.Tables[0].Fields[1].AlgType.Kind)
-	assert.Equal(t, AlgKindI32, mod.Tables[0].Fields[2].AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindU64, mod.Tables[0].Fields[0].AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindString, mod.Tables[0].Fields[1].AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindI32, mod.Tables[0].Fields[2].AlgType.Kind)
 }
 
 // TestAnalyzeTableConstraints verifies PrimaryKey, Unique, AutoInc flags are preserved.
 func TestAnalyzeTableConstraints(t *testing.T) {
 	parsed := newParsedModule()
-	fields := []ParsedField{
+	fields := []parser.ParsedField{
 		{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true, AutoInc: true},
 		{GoName: "Email", GoType: "string", BsatnName: "email", Unique: true},
 		{GoName: "Tag", GoType: "string", BsatnName: "tag", IndexBTree: true},
 	}
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "users", Access: "public", StructName: "User",
 		Fields: fields,
 	}}
-	parsed.Structs["User"] = &ParsedStruct{Name: "User", Fields: fields}
+	parsed.Structs["User"] = &parser.ParsedStruct{Name: "User", Fields: fields}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Tables[0].Fields, 3)
 
@@ -362,17 +365,17 @@ func TestAnalyzeTableConstraints(t *testing.T) {
 // TestAnalyzeMultiTable verifies that the same struct backing two different table names produces two AnalyzedTable entries.
 func TestAnalyzeMultiTable(t *testing.T) {
 	parsed := newParsedModule()
-	fields := []ParsedField{
+	fields := []parser.ParsedField{
 		{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true},
 		{GoName: "Name", GoType: "string", BsatnName: "name"},
 	}
-	parsed.Structs["Entity"] = &ParsedStruct{Name: "Entity", Fields: fields}
-	parsed.Tables = []ParsedTable{
+	parsed.Structs["Entity"] = &parser.ParsedStruct{Name: "Entity", Fields: fields}
+	parsed.Tables = []parser.ParsedTable{
 		{Name: "entity", Access: "public", StructName: "Entity", Fields: fields},
 		{Name: "logged_out_entity", Access: "private", StructName: "Entity", Fields: fields},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Tables, 2)
 
@@ -391,42 +394,42 @@ func TestAnalyzeMultiTable(t *testing.T) {
 // TestAnalyzeReducerParams verifies that reducer parameters are resolved to correct AlgTypes.
 func TestAnalyzeReducerParams(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Reducers = []ParsedReducer{{
+	parsed.Reducers = []parser.ParsedReducer{{
 		Name:     "set_name",
 		FuncName: "SetName",
-		Params: []ParsedParam{
+		Params: []parser.ParsedParam{
 			{Name: "id", GoType: "uint64"},
 			{Name: "name", GoType: "string"},
 			{Name: "score", GoType: "*float32"},
 		},
 	}}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Reducers, 1)
 	require.Len(t, mod.Reducers[0].Params, 3)
 
-	assert.Equal(t, AlgKindU64, mod.Reducers[0].Params[0].AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindU64, mod.Reducers[0].Params[0].AlgType.Kind)
 	assert.Equal(t, "id", mod.Reducers[0].Params[0].Name)
 
-	assert.Equal(t, AlgKindString, mod.Reducers[0].Params[1].AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindString, mod.Reducers[0].Params[1].AlgType.Kind)
 	assert.Equal(t, "name", mod.Reducers[0].Params[1].Name)
 
-	assert.Equal(t, AlgKindOption, mod.Reducers[0].Params[2].AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindOption, mod.Reducers[0].Params[2].AlgType.Kind)
 	require.NotNil(t, mod.Reducers[0].Params[2].AlgType.ElemType)
-	assert.Equal(t, AlgKindF32, mod.Reducers[0].Params[2].AlgType.ElemType.Kind)
+	assert.Equal(t, servergen.AlgKindF32, mod.Reducers[0].Params[2].AlgType.ElemType.Kind)
 }
 
 // TestAnalyzeReducerID verifies reducers get sequential IDs starting from 0.
 func TestAnalyzeReducerID(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Reducers = []ParsedReducer{
+	parsed.Reducers = []parser.ParsedReducer{
 		{Name: "first", FuncName: "First", Params: nil},
 		{Name: "second", FuncName: "Second", Params: nil},
 		{Name: "third", FuncName: "Third", Params: nil},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Reducers, 3)
 
@@ -438,16 +441,16 @@ func TestAnalyzeReducerID(t *testing.T) {
 // TestAnalyzeLifecycleID verifies lifecycle reducers get IDs continuing after regular reducers.
 func TestAnalyzeLifecycleID(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Reducers = []ParsedReducer{
+	parsed.Reducers = []parser.ParsedReducer{
 		{Name: "action_a", FuncName: "ActionA"},
 		{Name: "action_b", FuncName: "ActionB"},
 	}
-	parsed.Lifecycle = []ParsedLifecycle{
+	parsed.Lifecycle = []parser.ParsedLifecycle{
 		{Kind: "init", FuncName: "Init"},
 		{Kind: "connect", FuncName: "OnConnect"},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 
 	// Reducers: 0, 1
@@ -466,32 +469,32 @@ func TestAnalyzeLifecycleID(t *testing.T) {
 // TestAnalyzeProcedureReturn verifies that procedure return types are resolved.
 func TestAnalyzeProcedureReturn(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Procedures = []ParsedProcedure{{
+	parsed.Procedures = []parser.ParsedProcedure{{
 		Name:       "get_value",
 		FuncName:   "GetValue",
-		Params:     []ParsedParam{{Name: "key", GoType: "string"}},
+		Params:     []parser.ParsedParam{{Name: "key", GoType: "string"}},
 		ReturnType: "[]uint8",
 	}}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Procedures, 1)
 	require.NotNil(t, mod.Procedures[0].ReturnType)
-	assert.Equal(t, AlgKindBytes, mod.Procedures[0].ReturnType.Kind)
+	assert.Equal(t, servergen.AlgKindBytes, mod.Procedures[0].ReturnType.Kind)
 	assert.Equal(t, "[]uint8", mod.Procedures[0].ReturnGoType)
 }
 
 // TestAnalyzeViewClassification verifies authenticated and anonymous views get separate ID counters.
 func TestAnalyzeViewClassification(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Views = []ParsedView{
+	parsed.Views = []parser.ParsedView{
 		{Name: "auth_view_1", FuncName: "AuthView1", IsAnonymous: false, ReturnType: "string"},
 		{Name: "anon_view_1", FuncName: "AnonView1", IsAnonymous: true, ReturnType: "string"},
 		{Name: "auth_view_2", FuncName: "AuthView2", IsAnonymous: false, ReturnType: "uint32"},
 		{Name: "anon_view_2", FuncName: "AnonView2", IsAnonymous: true, ReturnType: "uint32"},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Views, 4)
 
@@ -515,12 +518,12 @@ func TestAnalyzeViewClassification(t *testing.T) {
 // TestAnalyzeSimpleEnum verifies that a simple enum is registered with correct variants and TypeKindSimpleEnum.
 func TestAnalyzeSimpleEnum(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Enums = []ParsedEnum{{
+	parsed.Enums = []parser.ParsedEnum{{
 		TypeName: "Color",
 		Variants: []string{"Red", "Green", "Blue"},
 	}}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Enums, 1)
 
@@ -529,22 +532,22 @@ func TestAnalyzeSimpleEnum(t *testing.T) {
 
 	typeInfo, ok := mod.Types["Color"]
 	require.True(t, ok)
-	assert.Equal(t, TypeKindSimpleEnum, typeInfo.Kind)
+	assert.Equal(t, servergen.TypeKindSimpleEnum, typeInfo.Kind)
 	assert.Equal(t, []string{"Red", "Green", "Blue"}, typeInfo.EnumVariants)
 }
 
 // TestAnalyzeSumType verifies sum type analysis with variants resolved and tags assigned sequentially.
 func TestAnalyzeSumType(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.SumTypes = []ParsedSumType{{
+	parsed.SumTypes = []parser.ParsedSumType{{
 		InterfaceName: "Shape",
 	}}
-	parsed.Variants = []ParsedVariant{
+	parsed.Variants = []parser.ParsedVariant{
 		{
 			OfInterface: "Shape",
 			Name:        "Circle",
 			StructName:  "CircleData",
-			Fields: []ParsedField{
+			Fields: []parser.ParsedField{
 				{GoName: "Radius", GoType: "float64", BsatnName: "radius"},
 			},
 		},
@@ -552,27 +555,27 @@ func TestAnalyzeSumType(t *testing.T) {
 			OfInterface: "Shape",
 			Name:        "Rectangle",
 			StructName:  "RectData",
-			Fields: []ParsedField{
+			Fields: []parser.ParsedField{
 				{GoName: "Width", GoType: "float64", BsatnName: "width"},
 				{GoName: "Height", GoType: "float64", BsatnName: "height"},
 			},
 		},
 	}
-	parsed.Structs["CircleData"] = &ParsedStruct{
+	parsed.Structs["CircleData"] = &parser.ParsedStruct{
 		Name: "CircleData",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Radius", GoType: "float64", BsatnName: "radius"},
 		},
 	}
-	parsed.Structs["RectData"] = &ParsedStruct{
+	parsed.Structs["RectData"] = &parser.ParsedStruct{
 		Name: "RectData",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Width", GoType: "float64", BsatnName: "width"},
 			{GoName: "Height", GoType: "float64", BsatnName: "height"},
 		},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.SumTypes, 1)
 
@@ -583,7 +586,7 @@ func TestAnalyzeSumType(t *testing.T) {
 	assert.Equal(t, "Circle", st.Variants[0].Name)
 	assert.Equal(t, uint8(0), st.Variants[0].Tag)
 	require.Len(t, st.Variants[0].Fields, 1)
-	assert.Equal(t, AlgKindF64, st.Variants[0].Fields[0].AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindF64, st.Variants[0].Fields[0].AlgType.Kind)
 
 	assert.Equal(t, "Rectangle", st.Variants[1].Name)
 	assert.Equal(t, uint8(1), st.Variants[1].Tag)
@@ -593,13 +596,13 @@ func TestAnalyzeSumType(t *testing.T) {
 // TestAnalyzeScopedType verifies that scope is preserved in the AnalyzedType and AnalyzedEnum.
 func TestAnalyzeScopedType(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Enums = []ParsedEnum{{
+	parsed.Enums = []parser.ParsedEnum{{
 		TypeName: "Status",
 		Variants: []string{"Active", "Inactive"},
 		Scope:    []string{"Game", "Player"},
 	}}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Enums, 1)
 
@@ -613,20 +616,20 @@ func TestAnalyzeScopedType(t *testing.T) {
 // TestAnalyzeTypespaceOrder verifies that enums are registered before structs in the TypeOrder.
 func TestAnalyzeTypespaceOrder(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Enums = []ParsedEnum{{
+	parsed.Enums = []parser.ParsedEnum{{
 		TypeName: "Color",
 		Variants: []string{"Red", "Green"},
 	}}
-	fields := []ParsedField{
+	fields := []parser.ParsedField{
 		{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true},
 	}
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "items", Access: "public", StructName: "Item",
 		Fields: fields,
 	}}
-	parsed.Structs["Item"] = &ParsedStruct{Name: "Item", Fields: fields}
+	parsed.Structs["Item"] = &parser.ParsedStruct{Name: "Item", Fields: fields}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.TypeOrder, 2)
 
@@ -638,20 +641,20 @@ func TestAnalyzeTypespaceOrder(t *testing.T) {
 // TestAnalyzeTypespaceIdx verifies that TypespaceIdx is assigned incrementally (0, 1, 2...).
 func TestAnalyzeTypespaceIdx(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Enums = []ParsedEnum{
+	parsed.Enums = []parser.ParsedEnum{
 		{TypeName: "ColorA", Variants: []string{"Red"}},
 		{TypeName: "ColorB", Variants: []string{"Blue"}},
 	}
-	fields := []ParsedField{
+	fields := []parser.ParsedField{
 		{GoName: "Id", GoType: "uint64", BsatnName: "id"},
 	}
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "t", Access: "public", StructName: "MyStruct",
 		Fields: fields,
 	}}
-	parsed.Structs["MyStruct"] = &ParsedStruct{Name: "MyStruct", Fields: fields}
+	parsed.Structs["MyStruct"] = &parser.ParsedStruct{Name: "MyStruct", Fields: fields}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, mod.Types["ColorA"].TypespaceIdx)
@@ -662,41 +665,41 @@ func TestAnalyzeTypespaceIdx(t *testing.T) {
 // TestAnalyzeCustomOrdering verifies that all struct types, enums, and sum types get CustomOrdering=true.
 func TestAnalyzeCustomOrdering(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Enums = []ParsedEnum{{
+	parsed.Enums = []parser.ParsedEnum{{
 		TypeName: "Status",
 		Variants: []string{"On", "Off"},
 	}}
-	parsed.SumTypes = []ParsedSumType{{
+	parsed.SumTypes = []parser.ParsedSumType{{
 		InterfaceName: "Value",
 	}}
-	parsed.Variants = []ParsedVariant{{
+	parsed.Variants = []parser.ParsedVariant{{
 		OfInterface: "Value",
 		Name:        "IntVal",
 		StructName:  "IntValData",
-		Fields:      []ParsedField{{GoName: "V", GoType: "int32", BsatnName: "v"}},
+		Fields:      []parser.ParsedField{{GoName: "V", GoType: "int32", BsatnName: "v"}},
 	}}
-	parsed.Structs["IntValData"] = &ParsedStruct{
+	parsed.Structs["IntValData"] = &parser.ParsedStruct{
 		Name:   "IntValData",
-		Fields: []ParsedField{{GoName: "V", GoType: "int32", BsatnName: "v"}},
+		Fields: []parser.ParsedField{{GoName: "V", GoType: "int32", BsatnName: "v"}},
 	}
 
 	// Table without explicit indexes (struct still gets CustomOrdering from resolveStructType).
-	plainFields := []ParsedField{{GoName: "X", GoType: "uint32", BsatnName: "x"}}
-	parsed.Tables = []ParsedTable{{
+	plainFields := []parser.ParsedField{{GoName: "X", GoType: "uint32", BsatnName: "x"}}
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "plain", Access: "public", StructName: "PlainStruct",
 		Fields: plainFields,
 	}}
-	parsed.Structs["PlainStruct"] = &ParsedStruct{Name: "PlainStruct", Fields: plainFields}
+	parsed.Structs["PlainStruct"] = &parser.ParsedStruct{Name: "PlainStruct", Fields: plainFields}
 
 	// Table with PK (also gets CustomOrdering from the btree marking).
-	pkFields := []ParsedField{{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true}}
-	parsed.Tables = append(parsed.Tables, ParsedTable{
+	pkFields := []parser.ParsedField{{GoName: "Id", GoType: "uint64", BsatnName: "id", PrimaryKey: true}}
+	parsed.Tables = append(parsed.Tables, parser.ParsedTable{
 		Name: "keyed", Access: "public", StructName: "KeyedStruct",
 		Fields: pkFields,
 	})
-	parsed.Structs["KeyedStruct"] = &ParsedStruct{Name: "KeyedStruct", Fields: pkFields}
+	parsed.Structs["KeyedStruct"] = &parser.ParsedStruct{Name: "KeyedStruct", Fields: pkFields}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 
 	// Enum: CustomOrdering=true
@@ -716,33 +719,33 @@ func TestAnalyzeCustomOrdering(t *testing.T) {
 func TestAnalyzeTypeAlias(t *testing.T) {
 	parsed := newParsedModule()
 	parsed.TypeAliases["MyAlias"] = "Inner"
-	parsed.Structs["Inner"] = &ParsedStruct{
+	parsed.Structs["Inner"] = &parser.ParsedStruct{
 		Name: "Inner",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Val", GoType: "uint32", BsatnName: "val"},
 		},
 	}
-	parsed.Structs["Outer"] = &ParsedStruct{
+	parsed.Structs["Outer"] = &parser.ParsedStruct{
 		Name: "Outer",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Ref", GoType: "MyAlias", BsatnName: "ref"},
 		},
 	}
-	parsed.Tables = []ParsedTable{{
+	parsed.Tables = []parser.ParsedTable{{
 		Name: "outer", Access: "public", StructName: "Outer",
-		Fields: []ParsedField{
+		Fields: []parser.ParsedField{
 			{GoName: "Ref", GoType: "MyAlias", BsatnName: "ref"},
 		},
 	}}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Tables, 1)
 	require.Len(t, mod.Tables[0].Fields, 1)
 
 	// MyAlias resolves to Inner, which is a struct ref.
 	field := mod.Tables[0].Fields[0]
-	assert.Equal(t, AlgKindRef, field.AlgType.Kind)
+	assert.Equal(t, servergen.AlgKindRef, field.AlgType.Kind)
 	assert.Equal(t, "Inner", field.AlgType.TypeName)
 }
 
@@ -750,7 +753,7 @@ func TestAnalyzeTypeAlias(t *testing.T) {
 func TestAnalyzeEmptyModule(t *testing.T) {
 	parsed := newParsedModule()
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
@@ -770,12 +773,12 @@ func TestAnalyzeEmptyModule(t *testing.T) {
 // TestAnalyzeReducerWithError verifies the HasError flag is preserved on analyzed reducers.
 func TestAnalyzeReducerWithError(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Reducers = []ParsedReducer{
+	parsed.Reducers = []parser.ParsedReducer{
 		{Name: "safe_action", FuncName: "SafeAction", HasError: false},
 		{Name: "risky_action", FuncName: "RiskyAction", HasError: true},
 	}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Reducers, 2)
 
@@ -786,14 +789,14 @@ func TestAnalyzeReducerWithError(t *testing.T) {
 // TestAnalyzeProcedureVoidReturn verifies that procedures with no return type have nil ReturnType.
 func TestAnalyzeProcedureVoidReturn(t *testing.T) {
 	parsed := newParsedModule()
-	parsed.Procedures = []ParsedProcedure{{
+	parsed.Procedures = []parser.ParsedProcedure{{
 		Name:       "do_thing",
 		FuncName:   "DoThing",
 		Params:     nil,
 		ReturnType: "", // void
 	}}
 
-	mod, err := analyze(parsed)
+	mod, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 	require.Len(t, mod.Procedures, 1)
 	assert.Nil(t, mod.Procedures[0].ReturnType)

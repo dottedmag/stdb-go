@@ -1,4 +1,4 @@
-package main
+package servergen
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// generate produces the complete stdb_generated.go file content.
-func generate(module *AnalyzedModule) ([]byte, error) {
+// Generate produces the complete stdb_generated.go file content.
+func Generate(module *AnalyzedModule) ([]byte, error) {
 	var w strings.Builder
 
 	// File header.
@@ -54,7 +54,7 @@ func generate(module *AnalyzedModule) ([]byte, error) {
 
 	// Format with gofmt.
 	code := []byte(w.String())
-	formatted, err := gofmt(code)
+	formatted, err := Gofmt(code)
 	if err != nil {
 		// If gofmt fails, return unformatted code with a warning comment.
 		return code, nil
@@ -93,8 +93,8 @@ func collectImports(module *AnalyzedModule) map[string]string {
 	return imports
 }
 
-// gofmt runs gofmt on the given source code.
-func gofmt(src []byte) ([]byte, error) {
+// Gofmt runs gofmt on the given source code.
+func Gofmt(src []byte) ([]byte, error) {
 	cmd := exec.Command("gofmt")
 	cmd.Stdin = strings.NewReader(string(src))
 	out, err := cmd.Output()

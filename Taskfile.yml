@@ -94,9 +94,19 @@ tasks:
       - go run . publish --dir={{.CLI_ARGS | default "./testdata/comprehensive/input"}} -d test-db
 
   golden-update:
-    desc: Regenerate golden test files
+    desc: Regenerate server codegen golden test files
     cmds:
-      - go test -run TestGolden -update
+      - go test -run TestGolden ./internal/servergen/ -update
+
+  golden-update:client:
+    desc: Regenerate client codegen golden test files
+    cmds:
+      - go test -run TestClientGen ./internal/clientgen/ -update
+
+  generate:client:
+    desc: Generate client bindings from a WASM binary or server
+    cmds:
+      - go run . generate client {{.CLI_ARGS}}
 
   test:integration:
     desc: Run integration tests (expects SpacetimeDB running)

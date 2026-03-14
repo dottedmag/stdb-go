@@ -1,4 +1,4 @@
-package main
+package parser_test
 
 import (
 	"os"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.digitalxero.dev/stdb-go/internal/parser"
 )
 
 func writeFile(t *testing.T, dir, name, content string) {
@@ -28,7 +29,7 @@ type Person struct {
 	Name string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 
@@ -57,7 +58,7 @@ type LogEntry struct {
 	Message string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 
@@ -81,7 +82,7 @@ type Item struct {
 	Price    float64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 
@@ -107,7 +108,7 @@ func MyCustomReducer(ctx context.Context, value int64) error {
 	return nil
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Reducers, 2)
 
@@ -150,7 +151,7 @@ func OnConnect(ctx context.Context) {
 func OnDisconnect(ctx context.Context) {
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Lifecycle, 3)
 
@@ -180,7 +181,7 @@ type Player struct {
 	Name string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Procedures, 1)
 
@@ -217,7 +218,7 @@ type Player struct {
 	Name string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Views, 2)
 
@@ -248,7 +249,7 @@ type Color uint8
 //stdb:enum variants=Admin,User,Guest scope=Auth
 type Role uint8
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Enums, 2)
 
@@ -277,7 +278,7 @@ type Action interface {
 	isAction()
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.SumTypes, 2)
 
@@ -304,7 +305,7 @@ type Square struct {
 	Side float64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Variants, 2)
 
@@ -334,7 +335,7 @@ type Job struct {
 	Data        string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Schedules, 1)
 
@@ -353,7 +354,7 @@ import "context"
 func rlsCheck(ctx context.Context) {
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.RLS, 1)
 	assert.Equal(t, "SELECT * FROM users WHERE owner_id = @caller_identity", parsed.RLS[0])
@@ -372,7 +373,7 @@ type Item struct {
 	Id uint64 `+"`"+`stdb:"primarykey"`+"`"+`
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	require.Len(t, parsed.Tables[0].Fields, 1)
@@ -393,7 +394,7 @@ type Item struct {
 	Id uint64 `+"`"+`stdb:"autoinc"`+"`"+`
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	require.Len(t, parsed.Tables[0].Fields, 1)
@@ -411,7 +412,7 @@ type Item struct {
 	Name string `+"`"+`stdb:"unique"`+"`"+`
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	require.Len(t, parsed.Tables[0].Fields, 1)
@@ -430,7 +431,7 @@ type Item struct {
 	Name string `+"`"+`stdb:"index=btree"`+"`"+`
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	require.Len(t, parsed.Tables[0].Fields, 1)
@@ -448,7 +449,7 @@ type Item struct {
 	Name string `+"`"+`stdb:"index=direct"`+"`"+`
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	require.Len(t, parsed.Tables[0].Fields, 1)
@@ -466,7 +467,7 @@ type Item struct {
 	Id uint64 `+"`"+`stdb:"primarykey,autoinc"`+"`"+`
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	require.Len(t, parsed.Tables[0].Fields, 1)
@@ -487,7 +488,7 @@ type Entity struct {
 	URLPath     string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	fields := parsed.Tables[0].Fields
@@ -514,7 +515,7 @@ type Mixed struct {
 	Data     []byte
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	fields := parsed.Tables[0].Fields
@@ -541,7 +542,7 @@ import "context"
 func DoWork(ctx context.Context, name string, count uint32, active bool) {
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Reducers, 1)
 
@@ -570,7 +571,7 @@ type Item struct {
 	Id uint64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Procedures, 1)
 	assert.Equal(t, "[]Item", parsed.Procedures[0].ReturnType)
@@ -591,7 +592,7 @@ func WithError(ctx context.Context) error {
 	return nil
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Reducers, 2)
 
@@ -624,7 +625,7 @@ type ShouldNotAppear struct {
 	Id uint64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	assert.Equal(t, "ok", parsed.Tables[0].Name)
@@ -646,7 +647,7 @@ type Generated struct {
 	Id uint64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	assert.Equal(t, "ok", parsed.Tables[0].Name)
@@ -668,7 +669,7 @@ type FromMain struct {
 	Id uint64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	assert.Equal(t, "ok", parsed.Tables[0].Name)
@@ -692,7 +693,7 @@ type Nested struct {
 	Id uint64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	assert.Equal(t, "ok", parsed.Tables[0].Name)
@@ -713,7 +714,7 @@ type Entity struct {
 	Name string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 2)
 
@@ -737,7 +738,7 @@ type Original struct {
 
 type Alias = Original
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	assert.Contains(t, parsed.TypeAliases, "Alias")
 	assert.Equal(t, "Original", parsed.TypeAliases["Alias"])
@@ -752,7 +753,7 @@ type Position struct {
 	Y float64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Contains(t, parsed.Structs, "Position")
 
@@ -767,7 +768,7 @@ type Position struct {
 
 func TestParseEmptyDirectory(t *testing.T) {
 	dir := t.TempDir()
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	assert.NotNil(t, parsed)
 	assert.Empty(t, parsed.Tables)
@@ -797,7 +798,7 @@ type Secret struct {
 	Public   string
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 
@@ -820,7 +821,7 @@ type PrivTable struct {
 	Id uint64
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Tables, 1)
 	assert.Equal(t, "private", parsed.Tables[0].Access)
@@ -838,7 +839,7 @@ type Foo struct {
 	X int
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	assert.Equal(t, "mymodule", parsed.PackageName)
 }
@@ -857,7 +858,7 @@ import "context"
 func RunJob(ctx context.Context) {
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Schedules, 1)
 	assert.Equal(t, "job_table", parsed.Schedules[0].TableName)
@@ -875,7 +876,7 @@ func TestParseRLSOnTypeDecl(t *testing.T) {
 //stdb:rls SELECT id FROM things WHERE owner = @caller
 type RlsMarker uint8
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.RLS, 1)
 	assert.Equal(t, "SELECT id FROM things WHERE owner = @caller", parsed.RLS[0])
@@ -893,7 +894,7 @@ import "github.com/clockworklabs/SpacetimeDB/sdks/go/types"
 
 type MyIdentity = types.Identity
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	assert.Contains(t, parsed.TypeAliases, "MyIdentity")
 	assert.Equal(t, "types.Identity", parsed.TypeAliases["MyIdentity"])
@@ -929,7 +930,7 @@ import "context"
 func Setup(ctx context.Context) {
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 
 	assert.Len(t, parsed.Tables, 1)
@@ -956,7 +957,7 @@ import "context"
 func DoSomething(ctx context.Context, id uint64) {
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Procedures, 1)
 	assert.Equal(t, "", parsed.Procedures[0].ReturnType)
@@ -982,7 +983,7 @@ func (m *MyStruct) ShouldBeSkipped(ctx context.Context) {
 func ShouldBeIncluded(ctx context.Context) {
 }
 `)
-	parsed, err := parseDirectory(dir)
+	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
 	require.Len(t, parsed.Reducers, 1)
 	assert.Equal(t, "ShouldBeIncluded", parsed.Reducers[0].FuncName)

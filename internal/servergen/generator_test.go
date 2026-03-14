@@ -1,4 +1,4 @@
-package main
+package servergen_test
 
 import (
 	"flag"
@@ -8,22 +8,25 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"go.digitalxero.dev/stdb-go/internal/parser"
+	"go.digitalxero.dev/stdb-go/internal/servergen"
 )
 
 var update = flag.Bool("update", false, "update golden files")
 
 func runGoldenTest(t *testing.T, name string) {
 	t.Helper()
-	inputDir := filepath.Join("testdata", name, "input")
-	goldenFile := filepath.Join("testdata", name, "golden.go")
+	inputDir := filepath.Join("..", "..", "testdata", name, "input")
+	goldenFile := filepath.Join("..", "..", "testdata", name, "golden.go")
 
-	parsed, err := parseDirectory(inputDir)
+	parsed, err := parser.ParseDirectory(inputDir)
 	require.NoError(t, err)
 
-	analyzed, err := analyze(parsed)
+	analyzed, err := servergen.Analyze(parsed)
 	require.NoError(t, err)
 
-	output, err := generate(analyzed)
+	output, err := servergen.Generate(analyzed)
 	require.NoError(t, err)
 
 	if *update {

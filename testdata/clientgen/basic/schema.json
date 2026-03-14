@@ -1,0 +1,86 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "name", "algebraic_type": {"String": null}},
+                {"name": "score", "algebraic_type": {"U32": null}}
+              ]
+            }
+          },
+          {
+            "Sum": {
+              "variants": [
+                {"name": "Online", "algebraic_type": {"Product": {"elements": []}}},
+                {"name": "Offline", "algebraic_type": {"Product": {"elements": []}}},
+                {"name": "Away", "algebraic_type": {"Product": {"elements": []}}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "Player"},
+            "ty": 0,
+            "custom_ordering": false
+          },
+          {
+            "source_name": {"scope": [], "source_name": "PlayerStatus"},
+            "ty": 1,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "Player",
+            "product_type_ref": 0,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [{"source_name": null, "col_id": 0, "start": null}],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      },
+      {
+        "Reducers": [
+          {
+            "source_name": "add_player",
+            "params": {
+              "elements": [
+                {"name": "name", "algebraic_type": {"String": null}},
+                {"name": "score", "algebraic_type": {"U32": null}}
+              ]
+            },
+            "visibility": "ClientCallable",
+            "ok_return_type": {"Product": {"elements": []}},
+            "err_return_type": {"String": null}
+          },
+          {
+            "source_name": "update_score",
+            "params": {
+              "elements": [
+                {"name": "player_id", "algebraic_type": {"U64": null}},
+                {"name": "new_score", "algebraic_type": {"U32": null}}
+              ]
+            },
+            "visibility": "ClientCallable",
+            "ok_return_type": {"Product": {"elements": []}},
+            "err_return_type": {"String": null}
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -27,6 +27,8 @@ type ScaffoldBuilder interface {
 	WithModule(module string) ScaffoldBuilder
 	WithType(t ProjectType) ScaffoldBuilder
 	WithDir(dir string) ScaffoldBuilder
+	WithClientSDKVersion(v string) ScaffoldBuilder
+	WithServerSDKVersion(v string) ScaffoldBuilder
 	Build() (Scaffold, error)
 }
 
@@ -36,18 +38,22 @@ type Scaffold interface {
 }
 
 type templateData struct {
-	Name      string
-	Module    string
-	TableName string
-	TypeName  string
+	Name             string
+	Module           string
+	TableName        string
+	TypeName         string
+	ClientSDKVersion string
+	ServerSDKVersion string
 }
 
 type scaffold struct {
-	name        string
-	module      string
-	projectType ProjectType
-	dir         string
-	data        templateData
+	name             string
+	module           string
+	projectType      ProjectType
+	dir              string
+	clientSDKVersion string
+	serverSDKVersion string
+	data             templateData
 }
 
 // NewScaffoldBuilder creates a new ScaffoldBuilder with defaults.
@@ -77,6 +83,16 @@ func (s *scaffold) WithDir(dir string) ScaffoldBuilder {
 	return s
 }
 
+func (s *scaffold) WithClientSDKVersion(v string) ScaffoldBuilder {
+	s.clientSDKVersion = v
+	return s
+}
+
+func (s *scaffold) WithServerSDKVersion(v string) ScaffoldBuilder {
+	s.serverSDKVersion = v
+	return s
+}
+
 func (s *scaffold) Build() (Scaffold, error) {
 	if s.name == "" {
 		return nil, fmt.Errorf("scaffold: project name is required")
@@ -97,11 +113,21 @@ func (s *scaffold) Build() (Scaffold, error) {
 		return nil, fmt.Errorf("scaffold: invalid project type %q (must be server, client, or fullstack)", s.projectType)
 	}
 
+	if s.clientSDKVersion == "" {
+		s.clientSDKVersion = latestModuleVersion(clientSDKModule, fallbackClientSDKVersion)
+	}
+
+	if s.serverSDKVersion == "" {
+		s.serverSDKVersion = latestModuleVersion(serverSDKModule, fallbackServerSDKVersion)
+	}
+
 	s.data = templateData{
-		Name:      s.name,
-		Module:    s.module,
-		TableName: "user",
-		TypeName:  "User",
+		Name:             s.name,
+		Module:           s.module,
+		TableName:        "user",
+		TypeName:         "User",
+		ClientSDKVersion: s.clientSDKVersion,
+		ServerSDKVersion: s.serverSDKVersion,
 	}
 
 	return s, nil

@@ -12,15 +12,14 @@
 package main
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
 func main() {
 	rootCmd := newRootCmd()
+	rootCmd.AddCommand(newGenerateCmd())
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newUpgradeCmd())
 	rootCmd.AddCommand(newBuildCmd())
@@ -46,7 +45,8 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runGenerate(dir, output)
+			// Backwards compatibility: bare `stdb-go` runs server codegen
+			return runGenerateServer(dir, output)
 		},
 	}
 
@@ -54,37 +54,4 @@ func newRootCmd() *cobra.Command {
 	cmd.Flags().StringVar(&output, "output", "stdb_generated.go", "output file name")
 
 	return cmd
-}
-
-func runGenerate(dir, output string) error {
-	absDir, err := filepath.Abs(dir)
-	if err != nil {
-		return fmt.Errorf("stdb-go: %w", err)
-	}
-
-	// Parse all Go source files in the directory.
-	parsed, err := parseDirectory(absDir)
-	if err != nil {
-		return fmt.Errorf("stdb-go: parse error: %w", err)
-	}
-
-	// Analyze parsed declarations and resolve types.
-	analyzed, err := analyze(parsed)
-	if err != nil {
-		return fmt.Errorf("stdb-go: analysis error: %w", err)
-	}
-
-	// Generate code.
-	code, err := generate(analyzed)
-	if err != nil {
-		return fmt.Errorf("stdb-go: generation error: %w", err)
-	}
-
-	outputPath := filepath.Join(absDir, output)
-	if err := os.WriteFile(outputPath, code, 0644); err != nil {
-		return fmt.Errorf("stdb-go: write error: %w", err)
-	}
-
-	fmt.Fprintf(os.Stderr, "stdb-go: wrote %s\n", outputPath)
-	return nil
 }
