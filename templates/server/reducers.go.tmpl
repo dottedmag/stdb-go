@@ -1,0 +1,10 @@
+package main
+
+import (
+	"go.digitalxero.dev/spacetimedb-server/reducer"
+)
+
+//stdb:reducer
+func Create{{.TypeName}}(ctx reducer.ReducerContext, name string) {
+	{{.TypeName}}Table.Insert({{.TypeName}}{Name: name})
+}

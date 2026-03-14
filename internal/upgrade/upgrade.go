@@ -15,7 +15,7 @@ type UpgraderBuilder interface {
 	WithMinVersion(constraint string) UpgraderBuilder
 	// WithProjectID sets the GitLab project ID.
 	WithProjectID(id int) UpgraderBuilder
-	// WithBinaryName sets the name of the binary (e.g., "stdb-gen").
+	// WithBinaryName sets the name of the binary (e.g., "stdb-go").
 	WithBinaryName(name string) UpgraderBuilder
 	// WithBinaryPath sets the path to the current binary.
 	WithBinaryPath(path string) UpgraderBuilder
@@ -76,6 +76,6 @@ type UpgradeResult interface {
 func NewUpgraderBuilder() UpgraderBuilder {
 	return &upgraderBuilder{
 		maxVersions: 50,
-		binaryName:  "stdb-gen",
+		binaryName:  "stdb-go",
 	}
 }

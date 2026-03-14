@@ -1,4 +1,4 @@
-// stdb-gen generates SpacetimeDB registration, BSATN encode/decode,
+// stdb-go generates SpacetimeDB registration, BSATN encode/decode,
 // table accessor, reducer dispatch, and module definition code from
 // Go source files annotated with //stdb: comment directives.
 //
@@ -8,7 +8,7 @@
 //
 // With a go:generate directive in your module:
 //
-//	//go:generate go run go.digitalxero.dev/stdb-gen
+//	//go:generate go run go.digitalxero.dev/stdb-go
 package main
 
 import (
@@ -23,6 +23,9 @@ func main() {
 	rootCmd := newRootCmd()
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newUpgradeCmd())
+	rootCmd.AddCommand(newBuildCmd())
+	rootCmd.AddCommand(newPublishCmd())
+	rootCmd.AddCommand(newInitCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -36,9 +39,9 @@ func newRootCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:           "stdb-gen",
+		Use:           "stdb-go",
 		Short:         "SpacetimeDB Go code generator",
-		Long:          `stdb-gen generates SpacetimeDB registration, BSATN encode/decode, table accessor, reducer dispatch, and module definition code from Go source files annotated with //stdb: comment directives.`,
+		Long:          `stdb-go generates SpacetimeDB registration, BSATN encode/decode, table accessor, reducer dispatch, and module definition code from Go source files annotated with //stdb: comment directives.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,32 +58,32 @@ func newRootCmd() *cobra.Command {
 func runGenerate(dir, output string) error {
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
-		return fmt.Errorf("stdb-gen: %w", err)
+		return fmt.Errorf("stdb-go: %w", err)
 	}
 
 	// Parse all Go source files in the directory.
 	parsed, err := parseDirectory(absDir)
 	if err != nil {
-		return fmt.Errorf("stdb-gen: parse error: %w", err)
+		return fmt.Errorf("stdb-go: parse error: %w", err)
 	}
 
 	// Analyze parsed declarations and resolve types.
 	analyzed, err := analyze(parsed)
 	if err != nil {
-		return fmt.Errorf("stdb-gen: analysis error: %w", err)
+		return fmt.Errorf("stdb-go: analysis error: %w", err)
 	}
 
 	// Generate code.
 	code, err := generate(analyzed)
 	if err != nil {
-		return fmt.Errorf("stdb-gen: generation error: %w", err)
+		return fmt.Errorf("stdb-go: generation error: %w", err)
 	}
 
 	outputPath := filepath.Join(absDir, output)
 	if err := os.WriteFile(outputPath, code, 0644); err != nil {
-		return fmt.Errorf("stdb-gen: write error: %w", err)
+		return fmt.Errorf("stdb-go: write error: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "stdb-gen: wrote %s\n", outputPath)
+	fmt.Fprintf(os.Stderr, "stdb-go: wrote %s\n", outputPath)
 	return nil
 }

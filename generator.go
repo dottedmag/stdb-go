@@ -82,13 +82,13 @@ func generateInit(module *AnalyzedModule, w *strings.Builder) {
 // collectImports determines which packages are needed by the generated code.
 func collectImports(module *AnalyzedModule) map[string]string {
 	imports := map[string]string{
-		"":         "fmt",
-		"bsatn":    "github.com/clockworklabs/SpacetimeDB/sdks/go/bsatn",
-		"runtime":  "github.com/clockworklabs/SpacetimeDB/sdks/go/server/runtime",
-		"sys":      "github.com/clockworklabs/SpacetimeDB/sdks/go/server/sys",
-		"types":    "github.com/clockworklabs/SpacetimeDB/sdks/go/types",
-		"moduledef": "github.com/clockworklabs/SpacetimeDB/sdks/go/server/moduledef",
-		"reducer":  "github.com/clockworklabs/SpacetimeDB/sdks/go/server/reducer",
+		"":          "fmt",
+		"bsatn":     "go.digitalxero.dev/spacetimedb-client/bsatn",
+		"runtime":   "go.digitalxero.dev/spacetimedb-server/runtime",
+		"sys":       "go.digitalxero.dev/spacetimedb-server/sys",
+		"types":     "go.digitalxero.dev/spacetimedb-client/types",
+		"moduledef": "go.digitalxero.dev/spacetimedb-server/moduledef",
+		"reducer":   "go.digitalxero.dev/spacetimedb-server/reducer",
 	}
 	return imports
 }

@@ -1,0 +1,29 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"go.digitalxero.dev/spacetimedb-client"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client, err := spacetimedb.Connect(ctx, "ws://localhost:3000", "{{.Name}}")
+	if err != nil {
+		log.Fatalf("failed to connect: %v", err)
+	}
+	defer client.Close()
+
+	fmt.Println("Connected to SpacetimeDB")
+
+	// Subscribe to tables
+	if err := client.Subscribe(ctx, "SELECT * FROM {{.TableName}}"); err != nil {
+		log.Fatalf("subscribe failed: %v", err)
+	}
+
+	// Block until interrupted
+	<-ctx.Done()
+}

@@ -1,4 +1,4 @@
-// Package upgrade provides self-upgrade functionality for stdb-gen.
+// Package upgrade provides self-upgrade functionality for stdb-go.
 package upgrade
 
 import (

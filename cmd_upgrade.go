@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-gen/internal/upgrade"
+	"go.digitalxero.dev/stdb-go/internal/upgrade"
 )
 
 func newUpgradeCmd() *cobra.Command {
@@ -21,20 +21,20 @@ func newUpgradeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "upgrade",
 		Aliases: []string{"self-update"},
-		Short:   "Upgrade stdb-gen to a newer version",
-		Long: `Upgrade stdb-gen to a newer version from GitLab releases.
+		Short:   "Upgrade stdb-go to a newer version",
+		Long: `Upgrade stdb-go to a newer version from GitLab releases.
 
 By default, upgrades to the latest available version. Use --version to specify
 a target version, or --list to see available versions.`,
 		Example: `  # Upgrade to the latest version
-  stdb-gen upgrade
+  stdb-go upgrade
 
   # List available versions
-  stdb-gen upgrade --list
+  stdb-go upgrade --list
 
   # Upgrade to a specific version
-  stdb-gen upgrade --version v0.2.0
-  stdb-gen upgrade -v v0.2.0`,
+  stdb-go upgrade --version v0.2.0
+  stdb-go upgrade -v v0.2.0`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 
@@ -72,7 +72,7 @@ a target version, or --list to see available versions.`,
 
 			if result.Success() {
 				fmt.Println(result.Message())
-				fmt.Println("\nPlease restart stdb-gen to use the new version.")
+				fmt.Println("\nPlease restart stdb-go to use the new version.")
 			}
 
 			return nil

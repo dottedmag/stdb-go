@@ -1,8 +1,9 @@
 version: "3"
 
 vars:
-  BINARY_NAME: stdb-gen
+  BINARY_NAME: stdb-go
   BUILD_DIR: build
+  SPACETIMEDB_IMAGE: clockworklabs/spacetime:v2.0.5
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
   COMMIT:
@@ -81,3 +82,55 @@ tasks:
     cmds:
       - go mod tidy
       - go mod verify
+
+  build-wasm:
+    desc: Build a test WASM module
+    cmds:
+      - go run . build --dir={{.CLI_ARGS | default "./testdata/comprehensive/input"}}
+
+  publish:
+    desc: Publish a test module to SpacetimeDB
+    cmds:
+      - go run . publish --dir={{.CLI_ARGS | default "./testdata/comprehensive/input"}} -d test-db
+
+  golden-update:
+    desc: Regenerate golden test files
+    cmds:
+      - go test -run TestGolden -update
+
+  test:integration:
+    desc: Run integration tests (expects SpacetimeDB running)
+    cmds:
+      - go test -v -tags=integration -timeout=5m -run TestIntegration ./...
+    env:
+      SPACETIMEDB_URL: '{{.SPACETIMEDB_URL | default "http://localhost:3000"}}'
+      SPACETIMEDB_WS_URL: '{{.SPACETIMEDB_WS_URL | default "ws://localhost:3000"}}'
+
+  spacetimedb:start:
+    desc: Start SpacetimeDB Docker container on localhost:3000
+    cmds:
+      - docker run -d --replace --name spacetimedb-integration -p 3000:3000 {{.SPACETIMEDB_IMAGE}} start --listen-addr 0.0.0.0:3000 --in-memory
+      - echo "Waiting for SpacetimeDB to start..."
+      - |
+        for i in $(seq 1 30); do
+          if curl -sf http://localhost:3000/v1/ping > /dev/null 2>&1; then
+            echo "SpacetimeDB is ready"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "SpacetimeDB failed to start within 30s"
+        exit 1
+
+  spacetimedb:stop:
+    desc: Stop and remove SpacetimeDB Docker container
+    cmds:
+      - docker stop spacetimedb-integration 2>/dev/null || true
+      - docker rm spacetimedb-integration 2>/dev/null || true
+
+  test:integration:local:
+    desc: Start SpacetimeDB, run integration tests, then stop
+    cmds:
+      - task: spacetimedb:start
+      - defer: { task: spacetimedb:stop }
+      - task: test:integration

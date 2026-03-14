@@ -1,0 +1,31 @@
+version: "3"
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  server:generate:
+    desc: Run server code generation
+    dir: server
+    cmds:
+      - go generate ./...
+
+  server:build:
+    desc: Build the server WASM module
+    dir: server
+    cmds:
+      - go run go.digitalxero.dev/stdb-go build
+
+  server:publish:
+    desc: Publish server to SpacetimeDB
+    dir: server
+    cmds:
+      - go run go.digitalxero.dev/stdb-go publish {{"{{"}}{{".CLI_ARGS"}}{{"}}"}}
+
+  client:run:
+    desc: Run the client
+    dir: client
+    cmds:
+      - go run .

@@ -1,4 +1,4 @@
-# GitLab CI/CD Pipeline for stdb-gen
+# GitLab CI/CD Pipeline for stdb-go
 # Stages: test, build, release
 
 stages:
@@ -13,7 +13,10 @@ variables:
   GO_VERSION: "1.25"
 
   # Binary settings
-  BINARY_NAME: stdb-gen
+  BINARY_NAME: stdb-go
+  # SpacetimeDB configuration
+  SPACETIMEDB_VERSION: "v2.0.5"
+
 
 # Cache configuration for Go modules
 .go-cache: &go-cache
@@ -70,6 +73,26 @@ test:modules:
   script:
     - go mod verify
     - go mod tidy -diff
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null'
+
+test:integration:
+  <<: *go-job
+  stage: test
+  services:
+    - name: clockworklabs/spacetime:${SPACETIMEDB_VERSION}
+      command:
+        - start
+        - --listen-addr
+        - 0.0.0.0:3000
+        - --in-memory
+      alias: spacetimedb
+  variables:
+    SPACETIMEDB_URL: "http://spacetimedb:3000"
+    SPACETIMEDB_WS_URL: "ws://spacetimedb:3000"
+  script:
+    - go test -v -tags=integration -timeout=5m -run TestIntegration ./...
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null'

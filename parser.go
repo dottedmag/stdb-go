@@ -502,16 +502,16 @@ func parseFieldTag(field ParsedField, tag string) ParsedField {
 
 	for _, part := range strings.Split(stdbTag, ",") {
 		part = strings.TrimSpace(part)
-		switch {
-		case part == "primarykey":
+		switch part {
+		case "primarykey":
 			field.PrimaryKey = true
-		case part == "autoinc":
+		case "autoinc":
 			field.AutoInc = true
-		case part == "unique":
+		case "unique":
 			field.Unique = true
-		case part == "index=btree":
+		case "index=btree":
 			field.IndexBTree = true
-		case part == "index=direct":
+		case "index=direct":
 			field.IndexDirect = true
 		}
 	}
@@ -614,7 +614,7 @@ func funcReturnsError(ft *ast.FuncType) bool {
 func parseMultiColIndex(spec string) (ParsedMultiColIndex, error) {
 	parts := strings.SplitN(spec, ":", 2)
 	if len(parts) != 2 {
-		return ParsedMultiColIndex{}, fmt.Errorf("invalid index spec %q: expected name:col0,col1,...", spec)
+		return ParsedMultiColIndex{}, fmt.Errorf("invalid index spec %q: expected name:col0,col1", spec)
 	}
 	idx := ParsedMultiColIndex{Name: parts[0]}
 	for _, colStr := range strings.Split(parts[1], ",") {

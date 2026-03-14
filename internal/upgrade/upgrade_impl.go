@@ -25,7 +25,7 @@ var (
 	_ UpgradeResult   = (*upgradeResult)(nil)
 )
 
-// Default GitLab project ID for stdb-gen.
+// Default GitLab project ID for stdb-go.
 const defaultProjectID = 79925889
 
 // Default minimum version constraint.
@@ -160,7 +160,7 @@ func (u *upgraderBuilder) Build(ctx context.Context) (Upgrader, error) {
 		u.projectID = defaultProjectID
 	}
 	if u.binaryName == "" {
-		u.binaryName = "stdb-gen"
+		u.binaryName = "stdb-go"
 	}
 	if u.stdout == nil {
 		u.stdout = os.Stdout

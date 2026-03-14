@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-gen/internal/upgrade"
+	"go.digitalxero.dev/stdb-go/internal/upgrade"
 )
 
 func TestNewUpgraderBuilder(t *testing.T) {
