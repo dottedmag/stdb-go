@@ -1,7 +1,27 @@
-- semver: 0.4.0
-  date: 2026-03-14T22:20:46.958505197Z
+- semver: 0.4.1
+  date: 2026-03-14T23:00:50.362257135Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: 5dc183a40b9083fa74f7f859c68129d236a58901
+      note: 'fix: remove the unneeded replace in go.mod'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.4.0
+  date: 2026-03-14T22:20:46Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: 5ad893637b64f6094af247b28cc922a4cd33177c
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 02940203028d5110c9a5dbc387e865c6b8904133
       note: 'feat: add ability to generate client module bindings'
       author:
