@@ -26,6 +26,7 @@ func main() {
 	rootCmd.AddCommand(newBuildCmd())
 	rootCmd.AddCommand(newPublishCmd())
 	rootCmd.AddCommand(newInitCmd())
+	rootCmd.AddCommand(newDevCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

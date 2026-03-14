@@ -237,7 +237,7 @@ func writeFieldDecode(w *strings.Builder, indent string, algType AlgType, expr s
 		fmt.Fprintf(w, "%s\tvar tag uint8\n", indent)
 		fmt.Fprintf(w, "%s\tif tag, err = r.GetU8(); err != nil { return fmt.Errorf(\"decode %s tag: %%w\", err) }\n", indent, label)
 		fmt.Fprintf(w, "%s\tif tag == 0 {\n", indent) // Some
-		goElemType := algType.TypeName[1:] // strip the *
+		goElemType := algType.TypeName[1:]            // strip the *
 		fmt.Fprintf(w, "%s\t\tvar %s %s\n", indent, tmpName, goElemType)
 		writeFieldDecode(w, indent+"\t\t", *elemType, tmpName, label+"_val")
 		fmt.Fprintf(w, "%s\t\t%s = &%s\n", indent, expr, tmpName)

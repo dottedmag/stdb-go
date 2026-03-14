@@ -17,11 +17,11 @@ type wasiImportInfo struct {
 
 // importEntry represents a single import in the WASM import section.
 type importEntry struct {
-	module   string
-	name     string
-	kind     byte   // 0=func, 1=table, 2=memory, 3=global
-	rawDesc  []byte // the descriptor bytes after the kind byte
-	typeIdx  uint32 // only meaningful for kind==0 (function imports)
+	module  string
+	name    string
+	kind    byte   // 0=func, 1=table, 2=memory, 3=global
+	rawDesc []byte // the descriptor bytes after the kind byte
+	typeIdx uint32 // only meaningful for kind==0 (function imports)
 }
 
 // RewriteWASI reads a WASM binary at wasmPath, replaces all wasi_snapshot_preview1
@@ -487,20 +487,20 @@ func buildStubs(wasiImports []wasiImportInfo, existingTypes []funcType) (
 	}
 
 	defs := map[string]stubDef{
-		"args_get":           {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildArgsGet},
-		"args_sizes_get":     {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildArgsSizesGet},
-		"clock_time_get":     {funcType{[]byte{wasmI32, wasmI64, wasmI32}, []byte{wasmI32}}, buildClockTimeGet},
-		"environ_get":        {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildEnvironGet},
-		"environ_sizes_get":  {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildEnvironSizesGet},
-		"fd_write":           {funcType{[]byte{wasmI32, wasmI32, wasmI32, wasmI32}, []byte{wasmI32}}, buildFdWrite},
-		"random_get":         {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildRandomGet},
-		"poll_oneoff":        {funcType{[]byte{wasmI32, wasmI32, wasmI32, wasmI32}, []byte{wasmI32}}, buildPollOneoff},
-		"proc_exit":          {funcType{[]byte{wasmI32}, nil}, buildProcExit},
-		"sched_yield":        {funcType{nil, []byte{wasmI32}}, buildSchedYield},
-		"fd_close":           {funcType{[]byte{wasmI32}, []byte{wasmI32}}, buildFdClose},
-		"fd_fdstat_get":      {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildFdFdstatGet},
+		"args_get":            {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildArgsGet},
+		"args_sizes_get":      {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildArgsSizesGet},
+		"clock_time_get":      {funcType{[]byte{wasmI32, wasmI64, wasmI32}, []byte{wasmI32}}, buildClockTimeGet},
+		"environ_get":         {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildEnvironGet},
+		"environ_sizes_get":   {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildEnvironSizesGet},
+		"fd_write":            {funcType{[]byte{wasmI32, wasmI32, wasmI32, wasmI32}, []byte{wasmI32}}, buildFdWrite},
+		"random_get":          {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildRandomGet},
+		"poll_oneoff":         {funcType{[]byte{wasmI32, wasmI32, wasmI32, wasmI32}, []byte{wasmI32}}, buildPollOneoff},
+		"proc_exit":           {funcType{[]byte{wasmI32}, nil}, buildProcExit},
+		"sched_yield":         {funcType{nil, []byte{wasmI32}}, buildSchedYield},
+		"fd_close":            {funcType{[]byte{wasmI32}, []byte{wasmI32}}, buildFdClose},
+		"fd_fdstat_get":       {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildFdFdstatGet},
 		"fd_fdstat_set_flags": {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildFdFdstatSetFlags},
-		"fd_prestat_get":     {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildFdPrestatGet},
+		"fd_prestat_get":      {funcType{[]byte{wasmI32, wasmI32}, []byte{wasmI32}}, buildFdPrestatGet},
 		"fd_prestat_dir_name": {funcType{[]byte{wasmI32, wasmI32, wasmI32}, []byte{wasmI32}}, buildFdPrestatDirName},
 	}
 
@@ -1033,10 +1033,10 @@ func rebuildCodeSection(data []byte, funcRemap map[uint32]uint32, globalIdxBase 
 func remapCodeBody(body []byte, funcRemap map[uint32]uint32) []byte {
 	// Find all call and ref.func instruction positions and their operand ranges.
 	type patch struct {
-		opStart  int    // position of operand start (after opcode byte)
-		opEnd    int    // position after operand
-		oldIdx   uint32 // original function index
-		newIdx   uint32 // remapped function index
+		opStart int    // position of operand start (after opcode byte)
+		opEnd   int    // position after operand
+		oldIdx  uint32 // original function index
+		newIdx  uint32 // remapped function index
 	}
 
 	var patches []patch
@@ -1066,8 +1066,10 @@ func remapCodeBody(body []byte, funcRemap map[uint32]uint32) []byte {
 			}
 
 		case opCallIndirect:
-			_, n := readULEB128(body[pos:]); pos += n // type index
-			_, n = readULEB128(body[pos:]); pos += n  // table index
+			_, n := readULEB128(body[pos:])
+			pos += n // type index
+			_, n = readULEB128(body[pos:])
+			pos += n // table index
 
 		case opBlock, opLoop, opIf:
 			// blocktype: 0x40 (void), valtype, or s33 type index
@@ -1080,28 +1082,36 @@ func remapCodeBody(body []byte, funcRemap map[uint32]uint32) []byte {
 			}
 
 		case opBr, opBrIf:
-			_, n := readULEB128(body[pos:]); pos += n
+			_, n := readULEB128(body[pos:])
+			pos += n
 
 		case 0x0e: // br_table
-			labelCount, n := readULEB128(body[pos:]); pos += n
+			labelCount, n := readULEB128(body[pos:])
+			pos += n
 			for i := uint32(0); i <= labelCount; i++ {
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			}
 
 		case opLocalGet, opLocalSet, 0x22: // local.get/set/tee
-			_, n := readULEB128(body[pos:]); pos += n
+			_, n := readULEB128(body[pos:])
+			pos += n
 
 		case opGlobalGet, opGlobalSet:
-			_, n := readULEB128(body[pos:]); pos += n
+			_, n := readULEB128(body[pos:])
+			pos += n
 
 		case 0x25, 0x26: // table.get/set
-			_, n := readULEB128(body[pos:]); pos += n
+			_, n := readULEB128(body[pos:])
+			pos += n
 
 		case opI32Const:
-			_, n := readSLEB128(body[pos:]); pos += n
+			_, n := readSLEB128(body[pos:])
+			pos += n
 
 		case opI64Const:
-			_, n := readSLEB128(body[pos:]); pos += n
+			_, n := readSLEB128(body[pos:])
+			pos += n
 
 		case 0x43: // f32.const
 			pos += 4
@@ -1110,65 +1120,90 @@ func remapCodeBody(body []byte, funcRemap map[uint32]uint32) []byte {
 			pos += 8
 
 		case 0x1c: // select t*
-			count, n := readULEB128(body[pos:]); pos += n
+			count, n := readULEB128(body[pos:])
+			pos += n
 			pos += int(count)
 
 		case 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
 			0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
 			0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e:
-			_, n := readULEB128(body[pos:]); pos += n // align
-			_, n = readULEB128(body[pos:]); pos += n  // offset
+			_, n := readULEB128(body[pos:])
+			pos += n // align
+			_, n = readULEB128(body[pos:])
+			pos += n // offset
 
 		case 0x3f, 0x40: // memory.size, memory.grow
-			_, n := readULEB128(body[pos:]); pos += n
+			_, n := readULEB128(body[pos:])
+			pos += n
 
 		case 0xfc: // multi-byte prefix
-			subOp, n := readULEB128(body[pos:]); pos += n
+			subOp, n := readULEB128(body[pos:])
+			pos += n
 			switch subOp {
 			case 8: // memory.init
-				_, n = readULEB128(body[pos:]); pos += n
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			case 9: // data.drop
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			case 10: // memory.copy
-				_, n = readULEB128(body[pos:]); pos += n
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			case 11: // memory.fill
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			case 12: // table.init
-				_, n = readULEB128(body[pos:]); pos += n
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			case 13: // elem.drop
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			case 14: // table.copy
-				_, n = readULEB128(body[pos:]); pos += n
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			case 15, 16, 17: // table.grow/size/fill
-				_, n = readULEB128(body[pos:]); pos += n
+				_, n = readULEB128(body[pos:])
+				pos += n
 			}
 
 		case 0xfd: // SIMD prefix
-			subOp, n := readULEB128(body[pos:]); pos += n
+			subOp, n := readULEB128(body[pos:])
+			pos += n
 			if subOp <= 11 || (subOp >= 92 && subOp <= 93) {
-				_, n = readULEB128(body[pos:]); pos += n // align
-				_, n = readULEB128(body[pos:]); pos += n // offset
+				_, n = readULEB128(body[pos:])
+				pos += n // align
+				_, n = readULEB128(body[pos:])
+				pos += n // offset
 			} else if subOp == 12 || subOp == 13 {
 				pos += 16
 			} else if subOp >= 21 && subOp <= 34 {
 				pos++ // laneidx
 			} else if subOp >= 84 && subOp <= 91 {
-				_, n = readULEB128(body[pos:]); pos += n // align
-				_, n = readULEB128(body[pos:]); pos += n // offset
-				pos++                                     // laneidx
+				_, n = readULEB128(body[pos:])
+				pos += n // align
+				_, n = readULEB128(body[pos:])
+				pos += n // offset
+				pos++    // laneidx
 			}
 
 		case 0xfe: // atomic prefix
-			subOp, n := readULEB128(body[pos:]); pos += n
+			subOp, n := readULEB128(body[pos:])
+			pos += n
 			if subOp == 3 {
 				pos++ // fence byte
 			} else {
-				_, n = readULEB128(body[pos:]); pos += n // align
-				_, n = readULEB128(body[pos:]); pos += n // offset
+				_, n = readULEB128(body[pos:])
+				pos += n // align
+				_, n = readULEB128(body[pos:])
+				pos += n // offset
 			}
 		}
 	}

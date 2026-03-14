@@ -377,9 +377,9 @@ func TestRewriteWASIWithElementSection(t *testing.T) {
 	elemSec = appendTestULEB128(elemSec, 0) // flags=0 (active)
 	// offset expr: i32.const 0, end
 	elemSec = append(elemSec, 0x41, 0x00, 0x0b)
-	elemSec = appendTestULEB128(elemSec, 2)  // 2 func refs
-	elemSec = appendTestULEB128(elemSec, 1)  // func 1
-	elemSec = appendTestULEB128(elemSec, 2)  // func 2
+	elemSec = appendTestULEB128(elemSec, 2) // 2 func refs
+	elemSec = appendTestULEB128(elemSec, 1) // func 1
+	elemSec = appendTestULEB128(elemSec, 2) // func 2
 	buf = appendTestSection(buf, 9, elemSec)
 
 	// Code section

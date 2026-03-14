@@ -39,11 +39,11 @@ type ParsedStruct struct {
 
 // ParsedTable represents a table declared via //stdb:table directive.
 type ParsedTable struct {
-	Name       string // from name= directive
-	Access     string // "public" or "private"
-	IsEvent    bool   // event=true
-	StructName string // Go struct name
-	Fields     []ParsedField
+	Name         string // from name= directive
+	Access       string // "public" or "private"
+	IsEvent      bool   // event=true
+	StructName   string // Go struct name
+	Fields       []ParsedField
 	ExtraIndexes []ParsedMultiColIndex
 }
 

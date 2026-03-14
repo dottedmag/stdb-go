@@ -28,14 +28,14 @@ type AnalyzedModule struct {
 
 // AnalyzedType represents a fully resolved Go type.
 type AnalyzedType struct {
-	Name          string
-	Kind          TypeKind
-	Fields        []AnalyzedField  // for structs
-	Variants      []AnalyzedVariant // for sum types
-	EnumVariants  []string          // for simple enums
-	Scope         []string          // optional namespace scope
-	TypespaceIdx  int               // index in the typespace
-	CustomOrdering bool             // whether type needs custom ordering (has btree index)
+	Name           string
+	Kind           TypeKind
+	Fields         []AnalyzedField   // for structs
+	Variants       []AnalyzedVariant // for sum types
+	EnumVariants   []string          // for simple enums
+	Scope          []string          // optional namespace scope
+	TypespaceIdx   int               // index in the typespace
+	CustomOrdering bool              // whether type needs custom ordering (has btree index)
 }
 
 // TypeKind classifies a Go type for BSATN encoding.
@@ -48,7 +48,7 @@ const (
 	TypeKindSumType
 	TypeKindSimpleEnum
 	TypeKindSlice
-	TypeKindPointer  // *T -> Option<T>
+	TypeKindPointer // *T -> Option<T>
 	TypeKindByteSlice
 )
 
@@ -68,10 +68,10 @@ type AnalyzedField struct {
 
 // AlgType represents an algebraic type in the typespace.
 type AlgType struct {
-	Kind       AlgKind
-	Ref        int    // typespace index for TypeRef
-	ElemType   *AlgType // for Array/Option
-	TypeName   string   // for special types or struct references
+	Kind     AlgKind
+	Ref      int      // typespace index for TypeRef
+	ElemType *AlgType // for Array/Option
+	TypeName string   // for special types or struct references
 }
 
 // AlgKind classifies an algebraic type.
@@ -94,10 +94,10 @@ const (
 	AlgKindF32
 	AlgKindF64
 	AlgKindString
-	AlgKindBytes   // []byte
-	AlgKindArray   // []T (non-byte)
-	AlgKindOption  // *T
-	AlgKindRef     // TypeRef to typespace
+	AlgKindBytes  // []byte
+	AlgKindArray  // []T (non-byte)
+	AlgKindOption // *T
+	AlgKindRef    // TypeRef to typespace
 	AlgKindIdentity
 	AlgKindConnectionId
 	AlgKindTimestamp
@@ -116,14 +116,14 @@ type AnalyzedVariant struct {
 
 // AnalyzedTable has fully resolved fields and metadata.
 type AnalyzedTable struct {
-	Name           string
-	Access         string
-	IsEvent        bool
-	StructName     string
-	Fields         []AnalyzedField
-	ExtraIndexes   []ParsedMultiColIndex
-	TypespaceRef   int // typespace index for this table's struct
-	VarName        string // Go variable name for the table accessor (e.g., "EntityTable")
+	Name         string
+	Access       string
+	IsEvent      bool
+	StructName   string
+	Fields       []AnalyzedField
+	ExtraIndexes []ParsedMultiColIndex
+	TypespaceRef int    // typespace index for this table's struct
+	VarName      string // Go variable name for the table accessor (e.g., "EntityTable")
 }
 
 // AnalyzedReducer has fully resolved parameters.
@@ -151,24 +151,24 @@ type AnalyzedLifecycle struct {
 
 // AnalyzedProcedure has fully resolved parameters and return type.
 type AnalyzedProcedure struct {
-	Name       string
-	FuncName   string
-	Params     []AnalyzedParam
-	ReturnType *AlgType // nil if void
+	Name         string
+	FuncName     string
+	Params       []AnalyzedParam
+	ReturnType   *AlgType // nil if void
 	ReturnGoType string
-	ID         uint32
+	ID           uint32
 }
 
 // AnalyzedView has fully resolved parameters and return type.
 type AnalyzedView struct {
-	Name        string
-	FuncName    string
-	IsPublic    bool
-	IsAnonymous bool
-	Params      []AnalyzedParam
-	ReturnType  AlgType
+	Name         string
+	FuncName     string
+	IsPublic     bool
+	IsAnonymous  bool
+	Params       []AnalyzedParam
+	ReturnType   AlgType
 	ReturnGoType string
-	ID          uint32 // index within auth or anon list
+	ID           uint32 // index within auth or anon list
 }
 
 // AnalyzedSumType has resolved variants.

@@ -1,6 +1,5 @@
 package wasishim
 
-
 // WASM binary encoding helpers.
 
 // wasmBuilder constructs a WASM binary module.
@@ -82,40 +81,40 @@ const (
 
 // WASM opcodes.
 const (
-	opUnreachable byte = 0x00
-	opNop         byte = 0x01
-	opBlock       byte = 0x02
-	opLoop        byte = 0x03
-	opIf          byte = 0x04
-	opElse        byte = 0x05
-	opEnd         byte = 0x0b
-	opBr          byte = 0x0c
-	opBrIf        byte = 0x0d
-	opReturn      byte = 0x0f
-	opCall        byte = 0x10
+	opUnreachable  byte = 0x00
+	opNop          byte = 0x01
+	opBlock        byte = 0x02
+	opLoop         byte = 0x03
+	opIf           byte = 0x04
+	opElse         byte = 0x05
+	opEnd          byte = 0x0b
+	opBr           byte = 0x0c
+	opBrIf         byte = 0x0d
+	opReturn       byte = 0x0f
+	opCall         byte = 0x10
 	opCallIndirect byte = 0x11
-	opLocalGet    byte = 0x20
-	opLocalSet    byte = 0x21
-	opGlobalGet   byte = 0x23
-	opGlobalSet   byte = 0x24
-	opI32Load     byte = 0x28
-	opI64Store    byte = 0x37
-	opI32Store    byte = 0x36
-	opI32Store8   byte = 0x3a
-	opI32Const    byte = 0x41
-	opI64Const    byte = 0x42
-	opI32Add      byte = 0x6a
-	opI32Mul      byte = 0x6c
-	opI32And      byte = 0x71
-	opI32Ne       byte = 0x47
-	opI32GeU      byte = 0x4f
-	opI32WrapI64  byte = 0xa7
-	opI64Add      byte = 0x7c
-	opI64Xor      byte = 0x85
-	opI64Shl      byte = 0x86
-	opI64ShrU     byte = 0x88
-	opRefFunc     byte = 0xd2
-	opBlockVoid   byte = 0x40
+	opLocalGet     byte = 0x20
+	opLocalSet     byte = 0x21
+	opGlobalGet    byte = 0x23
+	opGlobalSet    byte = 0x24
+	opI32Load      byte = 0x28
+	opI64Store     byte = 0x37
+	opI32Store     byte = 0x36
+	opI32Store8    byte = 0x3a
+	opI32Const     byte = 0x41
+	opI64Const     byte = 0x42
+	opI32Add       byte = 0x6a
+	opI32Mul       byte = 0x6c
+	opI32And       byte = 0x71
+	opI32Ne        byte = 0x47
+	opI32GeU       byte = 0x4f
+	opI32WrapI64   byte = 0xa7
+	opI64Add       byte = 0x7c
+	opI64Xor       byte = 0x85
+	opI64Shl       byte = 0x86
+	opI64ShrU      byte = 0x88
+	opRefFunc      byte = 0xd2
+	opBlockVoid    byte = 0x40
 )
 
 // funcType defines a WASM function signature.
@@ -139,13 +138,13 @@ func buildShimWASM() []byte {
 	// Index 6: (i32) -> i32              [fd_close]
 	// Index 7: (i32, i32, i32) -> i32    [fd_prestat_dir_name]
 	types := []funcType{
-		{params: []byte{wasmI32, wasmI32}, results: []byte{wasmI32}},           // 0
-		{params: []byte{wasmI32, wasmI64, wasmI32}, results: []byte{wasmI32}},  // 1
+		{params: []byte{wasmI32, wasmI32}, results: []byte{wasmI32}},                   // 0
+		{params: []byte{wasmI32, wasmI64, wasmI32}, results: []byte{wasmI32}},          // 1
 		{params: []byte{wasmI32, wasmI32, wasmI32, wasmI32}, results: []byte{wasmI32}}, // 2
-		{params: []byte{wasmI32}, results: nil},                                // 3: proc_exit
-		{params: nil, results: []byte{wasmI32}},                                // 4: sched_yield
-		{params: []byte{wasmI32}, results: []byte{wasmI32}},                    // 5: fd_close
-		{params: []byte{wasmI32, wasmI32, wasmI32}, results: []byte{wasmI32}},  // 6: fd_prestat_dir_name
+		{params: []byte{wasmI32}, results: nil},                                        // 3: proc_exit
+		{params: nil, results: []byte{wasmI32}},                                        // 4: sched_yield
+		{params: []byte{wasmI32}, results: []byte{wasmI32}},                            // 5: fd_close
+		{params: []byte{wasmI32, wasmI32, wasmI32}, results: []byte{wasmI32}},          // 6: fd_prestat_dir_name
 	}
 
 	// Type section
@@ -165,8 +164,8 @@ func buildShimWASM() []byte {
 	importSec = appendULEB128(importSec, 1) // 1 import
 	importSec = appendString(importSec, "main")
 	importSec = appendString(importSec, "memory")
-	importSec = append(importSec, 0x02)    // import kind: memory
-	importSec = append(importSec, 0x00)    // limits: no max
+	importSec = append(importSec, 0x02)     // import kind: memory
+	importSec = append(importSec, 0x00)     // limits: no max
 	importSec = appendULEB128(importSec, 0) // min pages: 0
 	w.writeSection(sectionImport, importSec)
 
@@ -212,7 +211,7 @@ func buildShimWASM() []byte {
 	exportSec = appendULEB128(exportSec, uint32(len(exportNames)))
 	for i, name := range exportNames {
 		exportSec = appendString(exportSec, name)
-		exportSec = append(exportSec, 0x00) // export kind: func
+		exportSec = append(exportSec, 0x00)             // export kind: func
 		exportSec = appendULEB128(exportSec, uint32(i)) // func index
 	}
 	w.writeSection(sectionExport, exportSec)
@@ -417,10 +416,10 @@ func buildFdWrite() []byte {
 	var code []byte
 
 	// if (fd != 1 && fd != 2) return 8
-	code = append(code, localGetB(0)...)  // fd
+	code = append(code, localGetB(0)...) // fd
 	code = append(code, i32Const(1)...)
 	code = append(code, opI32Ne)
-	code = append(code, localGetB(0)...)  // fd
+	code = append(code, localGetB(0)...) // fd
 	code = append(code, i32Const(2)...)
 	code = append(code, opI32Ne)
 	code = append(code, opI32And)
@@ -441,15 +440,15 @@ func buildFdWrite() []byte {
 	code = append(code, opLoop, opBlockVoid)
 
 	// br_if $break (i >= iovs_len)
-	code = append(code, localGetB(4)...)  // i
-	code = append(code, localGetB(2)...)  // iovs_len
+	code = append(code, localGetB(4)...) // i
+	code = append(code, localGetB(2)...) // iovs_len
 	code = append(code, opI32GeU)
 	code = append(code, opBrIf)
 	code = appendULEB128(code, 1) // break to outer block
 
 	// iov_offset = iovs_ptr + i * 8
-	code = append(code, localGetB(1)...)  // iovs_ptr
-	code = append(code, localGetB(4)...)  // i
+	code = append(code, localGetB(1)...) // iovs_ptr
+	code = append(code, localGetB(4)...) // i
 	code = append(code, i32Const(8)...)
 	code = append(code, opI32Mul)
 	code = append(code, opI32Add)
@@ -623,7 +622,7 @@ func buildFdFdstatGet() []byte {
 	// Zero 24 bytes of fdstat struct at stat_ptr.
 	// fdstat is: fs_filetype(u8) + pad(1) + fs_flags(u16) + fs_rights_base(u64) + fs_rights_inheriting(u64) = 24 bytes
 	// Store three i64 zeros to cover it.
-	code = append(code, localGetB(1)...)   // stat_ptr
+	code = append(code, localGetB(1)...) // stat_ptr
 	code = append(code, i64Const(0)...)
 	code = append(code, i64StoreB(0, 0)...) // bytes 0-7
 	code = append(code, localGetB(1)...)
@@ -652,4 +651,3 @@ func buildFdPrestatGet() []byte {
 func buildFdPrestatDirName() []byte {
 	return codeBody(noLocals(), i32Const(8))
 }
-

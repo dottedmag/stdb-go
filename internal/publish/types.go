@@ -31,9 +31,9 @@ type AutoMigrateResult struct {
 
 // ManualMigrateResult indicates the module requires manual migration.
 type ManualMigrateResult struct {
-	Summary    string   `json:"summary"`
-	Details    []string `json:"details"`
-	HasErrors  bool     `json:"has_errors"`
+	Summary   string   `json:"summary"`
+	Details   []string `json:"details"`
+	HasErrors bool     `json:"has_errors"`
 }
 
 // SpacetimeConfig represents the spacetime.json project config file.

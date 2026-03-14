@@ -132,4 +132,3 @@ func readULEB128(data []byte) (uint32, int) {
 	}
 	return result, len(data)
 }
-
