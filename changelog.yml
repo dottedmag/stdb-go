@@ -1,7 +1,27 @@
-- semver: 0.2.0
-  date: 2026-03-14T06:19:48.917489582Z
+- semver: 0.3.0
+  date: 2026-03-14T07:41:37.594354239Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: 84ae284eef1249a702a498c5f170e3960c1acdf7
+      note: 'feat: add dev command to watch and publish changes'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.2.0
+  date: 2026-03-14T06:19:48Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: 18fe4d27cd06a8cb37b854cb44c8e9e59b4a8f02
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 0330b6b82f782f69a43050dc7e32ad11482c431b
       note: 'feat: rename to stdb-go'
       author:
