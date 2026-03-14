@@ -1,7 +1,27 @@
-- semver: 0.3.0
-  date: 2026-03-14T07:41:37.594354239Z
+- semver: 0.4.0
+  date: 2026-03-14T22:20:46.958505197Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: 02940203028d5110c9a5dbc387e865c6b8904133
+      note: 'feat: add ability to generate client module bindings'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.3.0
+  date: 2026-03-14T07:41:37Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: cb6c82c7cc2b2aa8b9c44fc0bb7df84469b79c71
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 84ae284eef1249a702a498c5f170e3960c1acdf7
       note: 'feat: add dev command to watch and publish changes'
       author:

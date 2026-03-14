@@ -1,8 +1,15 @@
 
+0.4.0
+=============
+2026-03-14
+
+* feat: add ability to generate client module bindings (02940203)
+
 0.3.0
 =============
 2026-03-14
 
+* chore: update changelog (cb6c82c7)
 * feat: add dev command to watch and publish changes (84ae284e)
 
 0.2.0
