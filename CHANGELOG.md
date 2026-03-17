@@ -1,8 +1,15 @@
 
+0.4.2
+=============
+2026-03-17
+
+* fix: ensure fetching the schema from the server works (31bc8fbc)
+
 0.4.1
 =============
 2026-03-14
 
+* chore: update changelog (0a439129)
 * fix: remove the unneeded replace in go.mod (5dc183a4)
 
 0.4.0

@@ -1,7 +1,27 @@
-- semver: 0.4.1
-  date: 2026-03-14T23:00:50.362257135Z
+- semver: 0.4.2
+  date: 2026-03-17T18:43:26.313242595Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: 31bc8fbc35c6b986f643bbf254dceb213a4bc196
+      note: 'fix: ensure fetching the schema from the server works'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.4.1
+  date: 2026-03-14T23:00:50Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: 0a439129186eab9e2a6a7eea160f47b595b5494e
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 5dc183a40b9083fa74f7f859c68129d236a58901
       note: 'fix: remove the unneeded replace in go.mod'
       author:
