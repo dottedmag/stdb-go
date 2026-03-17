@@ -1,0 +1,43 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "event_type", "algebraic_type": {"String": null}},
+                {"name": "payload", "algebraic_type": {"String": null}},
+                {"name": "timestamp", "algebraic_type": {"U64": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "EventLog"},
+            "ty": 0,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "EventLog",
+            "product_type_ref": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": true
+          }
+        ]
+      }
+    ]
+  }
+}

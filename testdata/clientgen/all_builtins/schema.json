@@ -1,0 +1,58 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "f_bool", "algebraic_type": {"Bool": null}},
+                {"name": "f_u8", "algebraic_type": {"U8": null}},
+                {"name": "f_u16", "algebraic_type": {"U16": null}},
+                {"name": "f_u32", "algebraic_type": {"U32": null}},
+                {"name": "f_u64", "algebraic_type": {"U64": null}},
+                {"name": "f_u128", "algebraic_type": {"U128": null}},
+                {"name": "f_u256", "algebraic_type": {"U256": null}},
+                {"name": "f_i8", "algebraic_type": {"I8": null}},
+                {"name": "f_i16", "algebraic_type": {"I16": null}},
+                {"name": "f_i32", "algebraic_type": {"I32": null}},
+                {"name": "f_i64", "algebraic_type": {"I64": null}},
+                {"name": "f_i128", "algebraic_type": {"I128": null}},
+                {"name": "f_i256", "algebraic_type": {"I256": null}},
+                {"name": "f_f32", "algebraic_type": {"F32": null}},
+                {"name": "f_f64", "algebraic_type": {"F64": null}},
+                {"name": "f_string", "algebraic_type": {"String": null}},
+                {"name": "f_bytes", "algebraic_type": {"Bytes": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "AllBuiltins"},
+            "ty": 0,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "AllBuiltins",
+            "product_type_ref": 0,
+            "primary_key": null,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      }
+    ]
+  }
+}

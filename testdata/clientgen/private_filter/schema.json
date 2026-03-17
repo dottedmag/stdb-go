@@ -1,0 +1,135 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "name", "algebraic_type": {"String": null}}
+              ]
+            }
+          },
+          {
+            "Product": {
+              "elements": [
+                {"name": "key", "algebraic_type": {"String": null}},
+                {"name": "value", "algebraic_type": {"String": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "PublicItem"},
+            "ty": 0,
+            "custom_ordering": false
+          },
+          {
+            "source_name": {"scope": [], "source_name": "PrivateConfig"},
+            "ty": 1,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "PublicItem",
+            "product_type_ref": 0,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          },
+          {
+            "source_name": "PrivateConfig",
+            "product_type_ref": 1,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [],
+            "table_type": "User",
+            "table_access": "Private",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      },
+      {
+        "Reducers": [
+          {
+            "source_name": "public_action",
+            "params": {
+              "elements": [
+                {"name": "name", "algebraic_type": {"String": null}}
+              ]
+            },
+            "visibility": "ClientCallable",
+            "ok_return_type": {"Product": {"elements": []}},
+            "err_return_type": {"String": null}
+          },
+          {
+            "source_name": "private_action",
+            "params": {
+              "elements": [
+                {"name": "key", "algebraic_type": {"String": null}}
+              ]
+            },
+            "visibility": "Private",
+            "ok_return_type": {"Product": {"elements": []}},
+            "err_return_type": {"String": null}
+          }
+        ]
+      },
+      {
+        "Procedures": [
+          {
+            "source_name": "public_query",
+            "params": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}}
+              ]
+            },
+            "return_type": {"Ref": 0},
+            "visibility": "ClientCallable"
+          },
+          {
+            "source_name": "private_query",
+            "params": {
+              "elements": []
+            },
+            "return_type": {"Ref": 1},
+            "visibility": "Private"
+          }
+        ]
+      },
+      {
+        "Views": [
+          {
+            "source_name": "PublicView",
+            "index": 0,
+            "is_public": true,
+            "is_anonymous": false,
+            "params": {"elements": []},
+            "return_type": {"Ref": 0}
+          },
+          {
+            "source_name": "PrivateView",
+            "index": 1,
+            "is_public": false,
+            "is_anonymous": false,
+            "params": {"elements": []},
+            "return_type": {"Ref": 1}
+          }
+        ]
+      }
+    ]
+  }
+}

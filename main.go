@@ -39,11 +39,10 @@ func newRootCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:           "stdb-go",
-		Short:         "SpacetimeDB Go code generator",
-		Long:          `stdb-go generates SpacetimeDB registration, BSATN encode/decode, table accessor, reducer dispatch, and module definition code from Go source files annotated with //stdb: comment directives.`,
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Use:          "stdb-go",
+		Short:        "SpacetimeDB Go code generator",
+		Long:         `stdb-go generates SpacetimeDB registration, BSATN encode/decode, table accessor, reducer dispatch, and module definition code from Go source files annotated with //stdb: comment directives.`,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Backwards compatibility: bare `stdb-go` runs server codegen
 			return runGenerateServer(dir, output)

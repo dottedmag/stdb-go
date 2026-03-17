@@ -8,7 +8,7 @@ import (
 //stdb:table name=scheduled_proc_table access=private
 //stdb:schedule table=scheduled_proc_table function=scheduled_proc
 type ScheduledProcTable struct {
-	ScheduledId uint64         `stdb:"primarykey,autoinc"`
+	ScheduledId uint64 `stdb:"primarykey,autoinc"`
 	ScheduledAt types.ScheduleAt
 }
 

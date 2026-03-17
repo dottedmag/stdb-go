@@ -1,0 +1,83 @@
+package clientgen_test
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"go.digitalxero.dev/stdb-go/internal/clientgen"
+)
+
+func TestGenerateViews_EmptySchema(t *testing.T) {
+	schema := &clientgen.ModuleSchema{}
+	result, err := clientgen.GenerateViewsForTest(schema, "test_pkg")
+	require.NoError(t, err)
+	assert.Nil(t, result)
+}
+
+func TestGenerateViews_SingleView(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Typespace: []clientgen.AlgebraicType{
+			{
+				Kind: clientgen.ATKProduct,
+				Product: &clientgen.ProductType{
+					Elements: []clientgen.ProductTypeElement{
+						{Name: "user_id", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU64}},
+						{Name: "display_name", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinString}},
+					},
+				},
+			},
+		},
+		Types: []clientgen.TypeSchema{{Name: "UserSummary", TypeRef: 0}},
+		Views: []clientgen.ViewSchema{
+			{
+				Name:     "UserSummary",
+				Index:    0,
+				IsPublic: true,
+				Params:   []clientgen.FieldSchema{},
+			},
+		},
+	}
+	result, err := clientgen.GenerateViewsForTest(schema, "test_pkg")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	code := string(result)
+	assert.Contains(t, code, "type userSummaryViewDef struct{}")
+	assert.Contains(t, code, `func (userSummaryViewDef) TableName() string { return "UserSummary" }`)
+	assert.Contains(t, code, "func (userSummaryViewDef) DecodeRow(r bsatn.Reader) (*UserSummary, error)")
+	assert.Contains(t, code, "return ReadUserSummary(r)")
+	assert.Contains(t, code, "func (userSummaryViewDef) EncodeRow(row *UserSummary) []byte")
+	assert.Contains(t, code, "type UserSummaryView = cache.TypedTableCache[*UserSummary]")
+}
+
+func TestGenerateViews_MultipleViews(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Typespace: []clientgen.AlgebraicType{
+			{Kind: clientgen.ATKProduct, Product: &clientgen.ProductType{Elements: []clientgen.ProductTypeElement{
+				{Name: "a", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinString}},
+			}}},
+			{Kind: clientgen.ATKProduct, Product: &clientgen.ProductType{Elements: []clientgen.ProductTypeElement{
+				{Name: "b", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU32}},
+			}}},
+		},
+		Types: []clientgen.TypeSchema{
+			{Name: "ViewA", TypeRef: 0},
+			{Name: "ViewB", TypeRef: 1},
+		},
+		Views: []clientgen.ViewSchema{
+			{Name: "ViewA", Index: 0, IsPublic: true},
+			{Name: "ViewB", Index: 1, IsPublic: true},
+		},
+	}
+	result, err := clientgen.GenerateViewsForTest(schema, "test_pkg")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	code := string(result)
+	assert.Contains(t, code, "viewAViewDef")
+	assert.Contains(t, code, "viewBViewDef")
+	assert.Contains(t, code, "ViewAView")
+	assert.Contains(t, code, "ViewBView")
+}

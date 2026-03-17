@@ -1,0 +1,67 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "value", "algebraic_type": {"String": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "Record"},
+            "ty": 0,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "Record",
+            "product_type_ref": 0,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      },
+      {
+        "Reducers": [
+          {
+            "source_name": "reset_all",
+            "params": {
+              "elements": []
+            },
+            "visibility": "ClientCallable",
+            "ok_return_type": {"Product": {"elements": []}},
+            "err_return_type": {"String": null}
+          },
+          {
+            "source_name": "add_record",
+            "params": {
+              "elements": [
+                {"name": "value", "algebraic_type": {"String": null}}
+              ]
+            },
+            "visibility": "ClientCallable",
+            "ok_return_type": {"Product": {"elements": []}},
+            "err_return_type": {"String": null}
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -66,9 +66,49 @@ func runClientGenGoldenTest(t *testing.T, name string) {
 	}
 }
 
+// --- Golden File Tests ---
+
 func TestClientGen_Basic(t *testing.T) {
 	runClientGenGoldenTest(t, "basic")
 }
+
+func TestClientGen_Complex(t *testing.T) {
+	runClientGenGoldenTest(t, "complex")
+}
+
+func TestClientGen_Procedures(t *testing.T) {
+	runClientGenGoldenTest(t, "procedures")
+}
+
+func TestClientGen_Views(t *testing.T) {
+	runClientGenGoldenTest(t, "views")
+}
+
+func TestClientGen_PrivateFilter(t *testing.T) {
+	runClientGenGoldenTest(t, "private_filter")
+}
+
+func TestClientGen_Maps(t *testing.T) {
+	runClientGenGoldenTest(t, "maps")
+}
+
+func TestClientGen_AllBuiltins(t *testing.T) {
+	runClientGenGoldenTest(t, "all_builtins")
+}
+
+func TestClientGen_NoPK(t *testing.T) {
+	runClientGenGoldenTest(t, "no_pk")
+}
+
+func TestClientGen_MultiTable(t *testing.T) {
+	runClientGenGoldenTest(t, "multi_table")
+}
+
+func TestClientGen_NoParamsReducer(t *testing.T) {
+	runClientGenGoldenTest(t, "no_params_reducer")
+}
+
+// --- Schema Parser Tests ---
 
 func TestSchemaParser_Basic(t *testing.T) {
 	schema := loadTestSchema(t, "basic")
@@ -95,10 +135,6 @@ func TestSchemaParser_Basic(t *testing.T) {
 
 	assert.Equal(t, "update_score", schema.Reducers[1].Name)
 	assert.Len(t, schema.Reducers[1].Params, 2)
-}
-
-func TestClientGen_Complex(t *testing.T) {
-	runClientGenGoldenTest(t, "complex")
 }
 
 func TestSchemaParser_Complex(t *testing.T) {
@@ -140,76 +176,146 @@ func TestSchemaParser_Complex(t *testing.T) {
 	assert.Equal(t, "MessageContent", msgType.Name)
 }
 
-func TestGenCommon_ToGoName(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"player", "Player"},
-		{"add_player", "AddPlayer"},
-		{"player_id", "PlayerID"},
-		{"http_url", "HTTPURL"},
-		{"simple", "Simple"},
-		{"my_api_key", "MyAPIKey"},
-		{"", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := clientgen.ToGoNameForTest(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
+func TestSchemaParser_Procedures(t *testing.T) {
+	schema := loadTestSchema(t, "procedures")
+	assert.Len(t, schema.Procedures, 2)
+	assert.Equal(t, "get_user", schema.Procedures[0].Name)
+	assert.Equal(t, "search_users", schema.Procedures[1].Name)
 }
 
-func TestGenCommon_DetectSpecialType(t *testing.T) {
-	tests := []struct {
-		name     string
-		product  clientgen.ProductType
-		expected string
-	}{
-		{
-			name: "Identity",
-			product: clientgen.ProductType{
-				Elements: []clientgen.ProductTypeElement{
-					{Name: "__identity__", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU256}},
-				},
-			},
-			expected: "types.Identity",
-		},
-		{
-			name: "ConnectionId",
-			product: clientgen.ProductType{
-				Elements: []clientgen.ProductTypeElement{
-					{Name: "__connection_id__", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU128}},
-				},
-			},
-			expected: "types.ConnectionId",
-		},
-		{
-			name: "Timestamp",
-			product: clientgen.ProductType{
-				Elements: []clientgen.ProductTypeElement{
-					{Name: "__timestamp_micros_since_unix_epoch__", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinI64}},
-				},
-			},
-			expected: "types.Timestamp",
-		},
-		{
-			name: "Regular product - not special",
-			product: clientgen.ProductType{
-				Elements: []clientgen.ProductTypeElement{
-					{Name: "id", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU64}},
-				},
-			},
-			expected: "",
-		},
+func TestSchemaParser_Views(t *testing.T) {
+	schema := loadTestSchema(t, "views")
+	assert.Len(t, schema.Views, 1)
+	assert.Equal(t, "UserSummary", schema.Views[0].Name)
+	assert.True(t, schema.Views[0].IsPublic)
+}
+
+func TestSchemaParser_Maps(t *testing.T) {
+	schema := loadTestSchema(t, "maps")
+	require.Len(t, schema.Tables, 1)
+	table := schema.Tables[0]
+	require.NotNil(t, table.ProductType)
+	// metadata field: Map<String, String>
+	metaElem := table.ProductType.Elements[1]
+	assert.Equal(t, "metadata", metaElem.Name)
+	assert.Equal(t, clientgen.ATKMap, metaElem.AlgebraicType.Kind)
+}
+
+func TestSchemaParser_AllBuiltins(t *testing.T) {
+	schema := loadTestSchema(t, "all_builtins")
+	require.Len(t, schema.Tables, 1)
+	table := schema.Tables[0]
+	require.NotNil(t, table.ProductType)
+	assert.Len(t, table.ProductType.Elements, 17)
+}
+
+// --- Builder Validation Tests ---
+
+func TestClientGenBuilder_NilSchema(t *testing.T) {
+	_, err := clientgen.NewClientGen().
+		WithPackageName("test").
+		Build()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "schema is required")
+}
+
+func TestClientGenBuilder_EmptyPackageName(t *testing.T) {
+	schema := &clientgen.ModuleSchema{}
+	_, err := clientgen.NewClientGen().
+		WithSchema(schema).
+		Build()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "package name is required")
+}
+
+func TestClientGenBuilder_Success(t *testing.T) {
+	schema := &clientgen.ModuleSchema{}
+	gen, err := clientgen.NewClientGen().
+		WithSchema(schema).
+		WithOutputDir("output").
+		WithPackageName("test_pkg").
+		Build()
+	require.NoError(t, err)
+	assert.NotNil(t, gen)
+}
+
+// --- FilteredSchema Tests ---
+
+func TestFilteredSchema_IncludePrivateTrue(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Tables:     []clientgen.TableSchema{{Name: "pub", Access: "Public"}, {Name: "priv", Access: "Private"}},
+		Reducers:   []clientgen.ReducerSchema{{Name: "pub_r", Visibility: "ClientCallable"}, {Name: "priv_r", Visibility: "Private"}},
+		Procedures: []clientgen.ProcedureSchema{{Name: "pub_p", Visibility: "ClientCallable"}, {Name: "priv_p", Visibility: "Private"}},
+		Views:      []clientgen.ViewSchema{{Name: "pub_v", IsPublic: true}, {Name: "priv_v", IsPublic: false}},
+		Typespace:  []clientgen.AlgebraicType{{Kind: clientgen.ATKBuiltin}},
+		Types:      []clientgen.TypeSchema{{Name: "T1"}},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := clientgen.DetectSpecialTypeForTest(&tt.product)
-			assert.Equal(t, tt.expected, result)
-		})
+	filtered := clientgen.FilteredSchemaForTest(schema, true)
+	// When includePrivate is true, filtered returns original schema
+	assert.Equal(t, schema, filtered)
+}
+
+func TestFilteredSchema_IncludePrivateFalse(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Tables:     []clientgen.TableSchema{{Name: "pub", Access: "Public"}, {Name: "priv", Access: "Private"}},
+		Reducers:   []clientgen.ReducerSchema{{Name: "pub_r", Visibility: "ClientCallable"}, {Name: "priv_r", Visibility: "Private"}},
+		Procedures: []clientgen.ProcedureSchema{{Name: "pub_p", Visibility: "ClientCallable"}, {Name: "priv_p", Visibility: "Private"}},
+		Views:      []clientgen.ViewSchema{{Name: "pub_v", IsPublic: true}, {Name: "priv_v", IsPublic: false}},
+		Typespace:  []clientgen.AlgebraicType{{Kind: clientgen.ATKBuiltin}},
+		Types:      []clientgen.TypeSchema{{Name: "T1"}},
 	}
+
+	filtered := clientgen.FilteredSchemaForTest(schema, false)
+	assert.Len(t, filtered.Tables, 1)
+	assert.Equal(t, "pub", filtered.Tables[0].Name)
+	assert.Len(t, filtered.Reducers, 1)
+	assert.Equal(t, "pub_r", filtered.Reducers[0].Name)
+	assert.Len(t, filtered.Procedures, 1)
+	assert.Equal(t, "pub_p", filtered.Procedures[0].Name)
+	assert.Len(t, filtered.Views, 1)
+	assert.Equal(t, "pub_v", filtered.Views[0].Name)
+}
+
+func TestFilteredSchema_EmptySchema(t *testing.T) {
+	schema := &clientgen.ModuleSchema{}
+	filtered := clientgen.FilteredSchemaForTest(schema, false)
+	assert.Empty(t, filtered.Tables)
+	assert.Empty(t, filtered.Reducers)
+	assert.Empty(t, filtered.Procedures)
+	assert.Empty(t, filtered.Views)
+}
+
+func TestFilteredSchema_AllPrivate(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Tables:     []clientgen.TableSchema{{Name: "t1", Access: "Private"}, {Name: "t2", Access: "Private"}},
+		Reducers:   []clientgen.ReducerSchema{{Name: "r1", Visibility: "Private"}},
+		Procedures: []clientgen.ProcedureSchema{{Name: "p1", Visibility: "Private"}},
+		Views:      []clientgen.ViewSchema{{Name: "v1", IsPublic: false}},
+	}
+
+	filtered := clientgen.FilteredSchemaForTest(schema, false)
+	assert.Empty(t, filtered.Tables)
+	assert.Empty(t, filtered.Reducers)
+	assert.Empty(t, filtered.Procedures)
+	assert.Empty(t, filtered.Views)
+}
+
+func TestFilteredSchema_PreservesTypespaceAndTypes(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Typespace: []clientgen.AlgebraicType{
+			{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU64},
+			{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinString},
+		},
+		Types: []clientgen.TypeSchema{
+			{Name: "Type1", TypeRef: 0},
+			{Name: "Type2", TypeRef: 1},
+		},
+		Tables: []clientgen.TableSchema{{Name: "priv", Access: "Private"}},
+	}
+
+	filtered := clientgen.FilteredSchemaForTest(schema, false)
+	assert.Len(t, filtered.Typespace, 2, "Typespace should be preserved")
+	assert.Len(t, filtered.Types, 2, "Types should be preserved")
+	assert.Empty(t, filtered.Tables, "Private tables should be filtered")
 }

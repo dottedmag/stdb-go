@@ -41,6 +41,18 @@ func (s *RawModuleDefV10Section) UnmarshalJSON(data []byte) error {
 		s.sectionType = key
 		switch key {
 		case "Typespace":
+			// The server returns {"types": [...]}, while WASM-extracted
+			// schemas use a bare array [...]. Handle both formats.
+			if len(val) > 0 && val[0] == '{' {
+				var wrapper struct {
+					Types []AlgebraicType `json:"types"`
+				}
+				if err := json.Unmarshal(val, &wrapper); err != nil {
+					return err
+				}
+				s.typespace = wrapper.Types
+				return nil
+			}
 			return json.Unmarshal(val, &s.typespace)
 		case "Types":
 			return json.Unmarshal(val, &s.types)
@@ -175,6 +187,20 @@ type ProductTypeElement struct {
 	AlgebraicType AlgebraicType `json:"algebraic_type"`
 }
 
+func (e *ProductTypeElement) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Name          json.RawMessage `json:"name"`
+		AlgebraicType AlgebraicType   `json:"algebraic_type"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	e.AlgebraicType = raw.AlgebraicType
+	e.Name = unmarshalOptionString(raw.Name)
+	return nil
+}
+
 // SumType represents an enum/union type with named variants.
 type SumType struct {
 	Variants []SumTypeVariant `json:"variants"`
@@ -184,6 +210,20 @@ type SumType struct {
 type SumTypeVariant struct {
 	Name          string        `json:"name"`
 	AlgebraicType AlgebraicType `json:"algebraic_type"`
+}
+
+func (v *SumTypeVariant) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Name          json.RawMessage `json:"name"`
+		AlgebraicType AlgebraicType   `json:"algebraic_type"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	v.AlgebraicType = raw.AlgebraicType
+	v.Name = unmarshalOptionString(raw.Name)
+	return nil
 }
 
 // --- Table definitions ---
@@ -196,10 +236,27 @@ type RawTableDefV10 struct {
 	Indexes        []RawIndexDefV10    `json:"indexes"`
 	Constraints    []json.RawMessage   `json:"constraints"`
 	Sequences      []RawSequenceDefV10 `json:"sequences"`
-	TableType      string              `json:"table_type"`
-	TableAccess    string              `json:"table_access"`
+	TableType      string              `json:"-"`
+	TableAccess    string              `json:"-"`
 	DefaultValues  []json.RawMessage   `json:"default_values"`
 	IsEvent        bool                `json:"is_event"`
+}
+
+func (t *RawTableDefV10) UnmarshalJSON(data []byte) error {
+	// Use an alias to avoid infinite recursion.
+	type Alias RawTableDefV10
+	var raw struct {
+		Alias
+		TableType   json.RawMessage `json:"table_type"`
+		TableAccess json.RawMessage `json:"table_access"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*t = RawTableDefV10(raw.Alias)
+	t.TableType = unmarshalTaggedEnum(raw.TableType)
+	t.TableAccess = unmarshalTaggedEnum(raw.TableAccess)
+	return nil
 }
 
 // ParsedPrimaryKey extracts the primary key column indices from the raw JSON.
@@ -224,16 +281,51 @@ func (t *RawTableDefV10) ParsedPrimaryKey() ([]int, error) {
 
 // RawIndexDefV10 defines an index on a table.
 type RawIndexDefV10 struct {
-	SourceName   *string         `json:"source_name"`
-	AccessorName *string         `json:"accessor_name"`
+	SourceName   *string         `json:"-"`
+	AccessorName *string         `json:"-"`
 	Algorithm    json.RawMessage `json:"algorithm"`
+}
+
+func (idx *RawIndexDefV10) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		SourceName   json.RawMessage `json:"source_name"`
+		AccessorName json.RawMessage `json:"accessor_name"`
+		Algorithm    json.RawMessage `json:"algorithm"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	idx.Algorithm = raw.Algorithm
+	idx.SourceName = unmarshalOptionStringPtr(raw.SourceName)
+	idx.AccessorName = unmarshalOptionStringPtr(raw.AccessorName)
+	return nil
 }
 
 // RawSequenceDefV10 defines an auto-increment sequence.
 type RawSequenceDefV10 struct {
-	SourceName *string `json:"source_name"`
-	ColID      int     `json:"col_id"`
-	Start      *int64  `json:"start"`
+	SourceName *string `json:"-"`
+	ColID      int     `json:"-"`
+	Start      *int64  `json:"-"`
+}
+
+func (s *RawSequenceDefV10) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		SourceName json.RawMessage `json:"source_name"`
+		ColID      *int            `json:"col_id"`
+		Column     *int            `json:"column"`
+		Start      json.RawMessage `json:"start"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	s.SourceName = unmarshalOptionStringPtr(raw.SourceName)
+	if raw.ColID != nil {
+		s.ColID = *raw.ColID
+	} else if raw.Column != nil {
+		s.ColID = *raw.Column
+	}
+	s.Start = unmarshalOptionInt64Ptr(raw.Start)
+	return nil
 }
 
 // --- Reducer definitions ---
@@ -242,9 +334,23 @@ type RawSequenceDefV10 struct {
 type RawReducerDefV10 struct {
 	SourceName    string        `json:"source_name"`
 	Params        ProductType   `json:"params"`
-	Visibility    string        `json:"visibility"`
+	Visibility    string        `json:"-"`
 	OkReturnType  AlgebraicType `json:"ok_return_type"`
 	ErrReturnType AlgebraicType `json:"err_return_type"`
+}
+
+func (r *RawReducerDefV10) UnmarshalJSON(data []byte) error {
+	type Alias RawReducerDefV10
+	var raw struct {
+		Alias
+		Visibility json.RawMessage `json:"visibility"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*r = RawReducerDefV10(raw.Alias)
+	r.Visibility = unmarshalTaggedEnum(raw.Visibility)
+	return nil
 }
 
 // --- Procedure definitions ---
@@ -254,7 +360,21 @@ type RawProcedureDefV10 struct {
 	SourceName string        `json:"source_name"`
 	Params     ProductType   `json:"params"`
 	ReturnType AlgebraicType `json:"return_type"`
-	Visibility string        `json:"visibility"`
+	Visibility string        `json:"-"`
+}
+
+func (p *RawProcedureDefV10) UnmarshalJSON(data []byte) error {
+	type Alias RawProcedureDefV10
+	var raw struct {
+		Alias
+		Visibility json.RawMessage `json:"visibility"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*p = RawProcedureDefV10(raw.Alias)
+	p.Visibility = unmarshalTaggedEnum(raw.Visibility)
+	return nil
 }
 
 // --- View definitions ---
@@ -298,8 +418,21 @@ type RawScheduleDefV10 struct {
 
 // RawLifeCycleReducerDefV10 defines a lifecycle reducer.
 type RawLifeCycleReducerDefV10 struct {
-	LifecycleSpec string `json:"lifecycle_spec"`
+	LifecycleSpec string `json:"-"`
 	FunctionName  string `json:"function_name"`
+}
+
+func (l *RawLifeCycleReducerDefV10) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		LifecycleSpec json.RawMessage `json:"lifecycle_spec"`
+		FunctionName  string          `json:"function_name"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	l.FunctionName = raw.FunctionName
+	l.LifecycleSpec = unmarshalTaggedEnum(raw.LifecycleSpec)
+	return nil
 }
 
 // --- Row-level security definitions ---
@@ -308,6 +441,106 @@ type RawLifeCycleReducerDefV10 struct {
 type RawRowLevelSecurityDefV10 struct {
 	TableName string `json:"table_name"`
 	SQL       string `json:"sql"`
+}
+
+// unmarshalOptionString handles both plain strings ("foo") and Rust Option
+// format ({"some": "foo"} or "none") as used by the SpacetimeDB server.
+func unmarshalOptionString(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+
+	// Try plain string first.
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return s
+	}
+
+	// Try {"some": "value"} format.
+	var opt struct {
+		Some string `json:"some"`
+	}
+	if err := json.Unmarshal(raw, &opt); err == nil {
+		return opt.Some
+	}
+
+	return ""
+}
+
+// unmarshalTaggedEnum handles both plain strings ("User") and Rust serde
+// tagged enum format ({"User": []}) as used by the SpacetimeDB server.
+func unmarshalTaggedEnum(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+
+	// Try plain string first.
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return s
+	}
+
+	// Try {"Tag": ...} format — extract the key.
+	var tagged map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &tagged); err == nil {
+		for key := range tagged {
+			return key
+		}
+	}
+
+	return ""
+}
+
+// unmarshalOptionStringPtr handles both nullable strings (null/"foo") and
+// Rust Option format ({"some": "foo"}/{"none": []}) returning a *string.
+func unmarshalOptionStringPtr(raw json.RawMessage) *string {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+
+	// Try plain string.
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return &s
+	}
+
+	// Try {"some": "value"} / {"none": []} format.
+	var tagged map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &tagged); err == nil {
+		if val, ok := tagged["some"]; ok {
+			var v string
+			if json.Unmarshal(val, &v) == nil {
+				return &v
+			}
+		}
+	}
+
+	return nil
+}
+
+// unmarshalOptionInt64Ptr handles both nullable ints (null/123) and
+// Rust Option format ({"some": 123}/{"none": []}).
+func unmarshalOptionInt64Ptr(raw json.RawMessage) *int64 {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+
+	var n int64
+	if err := json.Unmarshal(raw, &n); err == nil {
+		return &n
+	}
+
+	var tagged map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &tagged); err == nil {
+		if val, ok := tagged["some"]; ok {
+			var v int64
+			if json.Unmarshal(val, &v) == nil {
+				return &v
+			}
+		}
+	}
+
+	return nil
 }
 
 // --- Special type tag constants ---

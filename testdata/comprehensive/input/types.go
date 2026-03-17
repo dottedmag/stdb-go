@@ -18,8 +18,8 @@ type Position struct {
 
 //stdb:table name=player access=public
 type Player struct {
-	Id       uint64         `stdb:"primarykey,autoinc"`
-	Name     string         `stdb:"unique"`
+	Id       uint64 `stdb:"primarykey,autoinc"`
+	Name     string `stdb:"unique"`
 	Owner    types.Identity
 	Position Position
 	Status   Status

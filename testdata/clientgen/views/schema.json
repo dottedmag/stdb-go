@@ -1,0 +1,71 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "name", "algebraic_type": {"String": null}},
+                {"name": "email", "algebraic_type": {"String": null}}
+              ]
+            }
+          },
+          {
+            "Product": {
+              "elements": [
+                {"name": "user_id", "algebraic_type": {"U64": null}},
+                {"name": "display_name", "algebraic_type": {"String": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "User"},
+            "ty": 0,
+            "custom_ordering": false
+          },
+          {
+            "source_name": {"scope": [], "source_name": "UserSummary"},
+            "ty": 1,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "User",
+            "product_type_ref": 0,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      },
+      {
+        "Views": [
+          {
+            "source_name": "UserSummary",
+            "index": 1,
+            "is_public": true,
+            "is_anonymous": false,
+            "params": {
+              "elements": []
+            },
+            "return_type": {"Ref": 1}
+          }
+        ]
+      }
+    ]
+  }
+}

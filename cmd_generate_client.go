@@ -14,11 +14,11 @@ import (
 func newGenerateClientCmd() *cobra.Command {
 	var (
 		outDir         string
-		binPath        string
 		server         string
 		database       string
 		token          string
 		packageName    string
+		schemaVersion  string
 		includePrivate bool
 	)
 
@@ -27,88 +27,74 @@ func newGenerateClientCmd() *cobra.Command {
 		Short: "Generate client-side Go bindings from a SpacetimeDB module schema",
 		Long: `Generate type-safe Go client bindings from a SpacetimeDB module schema.
 
-The schema can be extracted from either a compiled WASM binary (via the
-spacetime CLI) or from a running SpacetimeDB server instance.
+The schema is fetched from a running SpacetimeDB server instance.
 
-You must provide at least one schema source:
-  --bin-path    Path to a compiled WASM binary
-  -s/--server   SpacetimeDB server URL (with -d/--database)`,
-		Example: `  # Generate from a WASM binary
-  stdb-go generate client --bin-path=module.wasm --out-dir=./bindings
-
-  # Generate from a running server
+Required:
+  -d/--database   Database name or identity`,
+		Example: `  # Generate from a running server
   stdb-go generate client -d my-database --out-dir=./bindings
 
   # Generate with a custom package name
-  stdb-go generate client --bin-path=module.wasm --out-dir=./bindings --package=mymodule
+  stdb-go generate client -d my-database --out-dir=./bindings --package=mymodule
 
   # Include private tables and reducers
-  stdb-go generate client --bin-path=module.wasm --out-dir=./bindings --include-private`,
+  stdb-go generate client -d my-database --out-dir=./bindings --include-private
+
+  # Specify schema version
+  stdb-go generate client -d my-database --out-dir=./bindings --schema-version=10`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runGenerateClient(outDir, binPath, server, database, token, packageName, includePrivate)
+			return runGenerateClient(outDir, server, database, token, packageName, schemaVersion, includePrivate)
 		},
 	}
 
 	cmd.Flags().StringVar(&outDir, "out-dir", "module_bindings", "output directory for generated files")
-	cmd.Flags().StringVar(&binPath, "bin-path", "", "path to compiled WASM binary")
 	cmd.Flags().StringVarP(&server, "server", "s", "", "SpacetimeDB server URL (default: from config or http://localhost:3000)")
 	cmd.Flags().StringVarP(&database, "database", "d", "", "database name or identity")
 	cmd.Flags().StringVar(&token, "token", "", "auth token (default: from env or cli.toml)")
 	cmd.Flags().StringVar(&packageName, "package", "", "Go package name (default: derived from out-dir)")
+	cmd.Flags().StringVar(&schemaVersion, "schema-version", "10", "schema version for the server API")
 	cmd.Flags().BoolVar(&includePrivate, "include-private", false, "include private tables and reducers")
+
+	_ = cmd.MarkFlagRequired("database")
 
 	return cmd
 }
 
-func runGenerateClient(outDir, binPath, server, database, token, packageName string, includePrivate bool) error {
-	// Validate that at least one schema source is provided
-	if binPath == "" && database == "" {
-		return fmt.Errorf("generate client: must provide either --bin-path or --database/-d")
-	}
-
+func runGenerateClient(outDir, server, database, token, packageName, schemaVersion string, includePrivate bool) error {
 	// Derive package name from output directory if not specified
 	if packageName == "" {
 		packageName = filepath.Base(outDir)
 	}
 
-	// Build schema extractor
-	extractorBuilder := clientgen.NewSchemaExtractor()
-
-	if binPath != "" {
-		absBinPath, err := filepath.Abs(binPath)
-		if err != nil {
-			return fmt.Errorf("generate client: %w", err)
-		}
-		extractorBuilder = extractorBuilder.FromWasm(absBinPath)
-	} else {
-		// Resolve server/database/token from flags and config
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("generate client: %w", err)
-		}
-
-		spacetimeCfg, err := publish.LoadSpacetimeConfig(cwd)
-		if err != nil {
-			return fmt.Errorf("generate client: %w", err)
-		}
-
-		cliCfg, err := publish.LoadCLIConfig()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "generate client: warning: %v\n", err)
-		}
-
-		resolvedServer := publish.ResolveServer(server, spacetimeCfg, cliCfg)
-		resolvedDB := publish.ResolveDatabase(database, spacetimeCfg)
-		resolvedToken := publish.ResolveToken(token, cliCfg)
-
-		if resolvedDB == "" {
-			return fmt.Errorf("generate client: database name is required (use --database flag or spacetime.json)")
-		}
-
-		extractorBuilder = extractorBuilder.FromServer(resolvedServer, resolvedDB, resolvedToken)
+	// Resolve server/database/token from flags and config
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("generate client: %w", err)
 	}
 
-	extractor, err := extractorBuilder.Build()
+	spacetimeCfg, err := publish.LoadSpacetimeConfig(cwd)
+	if err != nil {
+		return fmt.Errorf("generate client: %w", err)
+	}
+
+	cliCfg, err := publish.LoadCLIConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "generate client: warning: %v\n", err)
+	}
+
+	resolvedServer := publish.ResolveServer(server, spacetimeCfg, cliCfg)
+	resolvedDB := publish.ResolveDatabase(database, spacetimeCfg)
+	resolvedToken := publish.ResolveToken(token, cliCfg)
+
+	if resolvedDB == "" {
+		return fmt.Errorf("generate client: database name is required (use --database flag or spacetime.json)")
+	}
+
+	// Build schema extractor
+	extractor, err := clientgen.NewSchemaExtractor().
+		FromServer(resolvedServer, resolvedDB, resolvedToken).
+		WithSchemaVersion(schemaVersion).
+		Build()
 	if err != nil {
 		return fmt.Errorf("generate client: %w", err)
 	}

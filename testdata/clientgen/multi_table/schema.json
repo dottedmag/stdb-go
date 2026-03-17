@@ -1,0 +1,92 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "name", "algebraic_type": {"String": null}}
+              ]
+            }
+          },
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "author_id", "algebraic_type": {"U64": null}},
+                {"name": "title", "algebraic_type": {"String": null}},
+                {"name": "body", "algebraic_type": {"String": null}}
+              ]
+            }
+          },
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "post_id", "algebraic_type": {"U64": null}},
+                {"name": "author_id", "algebraic_type": {"U64": null}},
+                {"name": "content", "algebraic_type": {"String": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "Author"},
+            "ty": 0,
+            "custom_ordering": false
+          },
+          {
+            "source_name": {"scope": [], "source_name": "Post"},
+            "ty": 1,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "Author",
+            "product_type_ref": 0,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [{"source_name": null, "col_id": 0, "start": null}],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          },
+          {
+            "source_name": "Post",
+            "product_type_ref": 1,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [{"source_name": null, "col_id": 0, "start": null}],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          },
+          {
+            "source_name": "Comment",
+            "product_type_ref": 2,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [{"source_name": null, "col_id": 0, "start": null}],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      }
+    ]
+  }
+}

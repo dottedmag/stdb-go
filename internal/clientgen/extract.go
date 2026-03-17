@@ -5,11 +5,10 @@ import (
 	"fmt"
 )
 
-// SchemaExtractorBuilder configures a SchemaExtractor from either a WASM binary
-// or a running SpacetimeDB server.
+// SchemaExtractorBuilder configures a SchemaExtractor from a running SpacetimeDB server.
 type SchemaExtractorBuilder interface {
-	FromWasm(binPath string) SchemaExtractorBuilder
 	FromServer(serverURL, database, token string) SchemaExtractorBuilder
+	WithSchemaVersion(v string) SchemaExtractorBuilder
 	Build() (SchemaExtractor, error)
 }
 
@@ -20,19 +19,16 @@ type SchemaExtractor interface {
 
 // NewSchemaExtractor returns a new SchemaExtractorBuilder.
 func NewSchemaExtractor() SchemaExtractorBuilder {
-	return &schemaExtractorBuilder{}
+	return &schemaExtractorBuilder{
+		schemaVersion: "10",
+	}
 }
 
 type schemaExtractorBuilder struct {
-	wasmPath  string
-	serverURL string
-	database  string
-	token     string
-}
-
-func (b *schemaExtractorBuilder) FromWasm(binPath string) SchemaExtractorBuilder {
-	b.wasmPath = binPath
-	return b
+	serverURL     string
+	database      string
+	token         string
+	schemaVersion string
 }
 
 func (b *schemaExtractorBuilder) FromServer(serverURL, database, token string) SchemaExtractorBuilder {
@@ -42,16 +38,19 @@ func (b *schemaExtractorBuilder) FromServer(serverURL, database, token string) S
 	return b
 }
 
+func (b *schemaExtractorBuilder) WithSchemaVersion(v string) SchemaExtractorBuilder {
+	b.schemaVersion = v
+	return b
+}
+
 func (b *schemaExtractorBuilder) Build() (SchemaExtractor, error) {
-	if b.wasmPath != "" {
-		return &wasmExtractor{binPath: b.wasmPath}, nil
-	}
 	if b.serverURL != "" && b.database != "" {
 		return &serverExtractor{
-			serverURL: b.serverURL,
-			database:  b.database,
-			token:     b.token,
+			serverURL:     b.serverURL,
+			database:      b.database,
+			token:         b.token,
+			schemaVersion: b.schemaVersion,
 		}, nil
 	}
-	return nil, fmt.Errorf("must provide either WASM binary path or server URL with database")
+	return nil, fmt.Errorf("must provide server URL with database")
 }

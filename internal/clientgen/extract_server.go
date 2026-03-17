@@ -10,15 +10,16 @@ import (
 )
 
 type serverExtractor struct {
-	serverURL string
-	database  string
-	token     string
+	serverURL     string
+	database      string
+	token         string
+	schemaVersion string
 }
 
 func (e *serverExtractor) Extract(ctx context.Context) (*ModuleSchema, error) {
 	// Build the schema endpoint URL
 	baseURL := strings.TrimRight(e.serverURL, "/")
-	url := fmt.Sprintf("%s/v1/database/%s/schema", baseURL, e.database)
+	url := fmt.Sprintf("%s/v1/database/%s/schema?version=%s", baseURL, e.database, e.schemaVersion)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -45,10 +46,20 @@ func (e *serverExtractor) Extract(ctx context.Context) (*ModuleSchema, error) {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	// Parse the JSON response into raw module def
+	// The server returns the V10 schema directly (not wrapped in a version
+	// envelope) when ?version=10 is used. Try parsing as a versioned envelope
+	// first; if V10 is nil, treat the response as a bare V10 definition.
 	var rawDef RawModuleDef
 	if err := json.Unmarshal(body, &rawDef); err != nil {
 		return nil, fmt.Errorf("parsing schema JSON: %w", err)
+	}
+
+	if rawDef.V10 == nil {
+		var v10 RawModuleDefV10
+		if err := json.Unmarshal(body, &v10); err != nil {
+			return nil, fmt.Errorf("parsing schema as V10: %w", err)
+		}
+		rawDef.V10 = &v10
 	}
 
 	// Resolve into ModuleSchema

@@ -2,7 +2,7 @@ package main
 
 //stdb:table name=all_primitives access=public
 type AllPrimitives struct {
-	Id      uint64  `stdb:"primarykey,autoinc"`
+	Id      uint64 `stdb:"primarykey,autoinc"`
 	ABool   bool
 	AU8     uint8
 	AU16    uint16
