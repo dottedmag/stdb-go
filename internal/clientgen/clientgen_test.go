@@ -108,6 +108,10 @@ func TestClientGen_NoParamsReducer(t *testing.T) {
 	runClientGenGoldenTest(t, "no_params_reducer")
 }
 
+func TestClientGen_TableTypeMismatch(t *testing.T) {
+	runClientGenGoldenTest(t, "table_type_mismatch")
+}
+
 // --- Schema Parser Tests ---
 
 func TestSchemaParser_Basic(t *testing.T) {

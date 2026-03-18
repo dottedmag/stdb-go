@@ -159,6 +159,50 @@ func TestGenerateModule_TableWithoutPK_RegisterTypedTable(t *testing.T) {
 	assert.NotContains(t, code, "RegisterTypedTableWithPK")
 }
 
+func TestGenerateModule_TableNameDiffersFromTypeName(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Typespace: []clientgen.AlgebraicType{
+			{
+				Kind: clientgen.ATKProduct,
+				Product: &clientgen.ProductType{
+					Elements: []clientgen.ProductTypeElement{
+						{Name: "id", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU64}},
+						{Name: "name", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinString}},
+					},
+				},
+			},
+		},
+		Types: []clientgen.TypeSchema{{Name: "User", TypeRef: 0}},
+		Tables: []clientgen.TableSchema{
+			{
+				Name:       "users",
+				TypeRef:    0,
+				PrimaryKey: []int{0},
+				ProductType: &clientgen.ProductType{
+					Elements: []clientgen.ProductTypeElement{
+						{Name: "id", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU64}},
+						{Name: "name", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinString}},
+					},
+				},
+				Access: "Public",
+			},
+		},
+	}
+	result, err := clientgen.GenerateModuleForTest(schema, "test_pkg")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	code := string(result)
+
+	// Struct field uses table name, type alias uses type name
+	assert.Contains(t, code, "Users *UserTable")
+	// Registration uses type name for type params
+	assert.Contains(t, code, "cache.RegisterTypedTableWithPK[*User, uint64]")
+	// Should NOT contain wrong type references
+	assert.NotContains(t, code, "*Users,")
+	assert.NotContains(t, code, "UsersTable")
+}
+
 func TestGenerateModule_ConnAccessor(t *testing.T) {
 	schema := &clientgen.ModuleSchema{
 		Tables: []clientgen.TableSchema{

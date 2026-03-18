@@ -21,12 +21,20 @@ func generateTables(schema *ModuleSchema, pkgName string) ([]byte, error) {
 
 	var tableCode strings.Builder
 
+	namedRefs := map[int]string{}
+	for _, t := range schema.Types {
+		namedRefs[t.TypeRef] = t.Name
+	}
+
 	for _, table := range schema.Tables {
 		if table.ProductType == nil {
 			continue
 		}
 
 		goName := toGoName(table.Name)
+		if typeName, ok := namedRefs[table.TypeRef]; ok {
+			goName = toGoName(typeName)
+		}
 		defName := toLowerCamel(table.Name) + "TableDef"
 
 		// Table definition struct

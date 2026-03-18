@@ -129,6 +129,58 @@ func TestGenerateTables_MultipleTables(t *testing.T) {
 	assert.Contains(t, code, "CommentTable")
 }
 
+func TestGenerateTables_TableNameDiffersFromTypeName(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Typespace: []clientgen.AlgebraicType{
+			{
+				Kind: clientgen.ATKProduct,
+				Product: &clientgen.ProductType{
+					Elements: []clientgen.ProductTypeElement{
+						{Name: "id", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU64}},
+						{Name: "name", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinString}},
+					},
+				},
+			},
+		},
+		Types: []clientgen.TypeSchema{{Name: "User", TypeRef: 0}},
+		Tables: []clientgen.TableSchema{
+			{
+				Name:       "users",
+				TypeRef:    0,
+				PrimaryKey: []int{0},
+				ProductType: &clientgen.ProductType{
+					Elements: []clientgen.ProductTypeElement{
+						{Name: "id", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinU64}},
+						{Name: "name", AlgebraicType: clientgen.AlgebraicType{Kind: clientgen.ATKBuiltin, Builtin: clientgen.BuiltinString}},
+					},
+				},
+				Access: "Public",
+			},
+		},
+	}
+	result, err := clientgen.GenerateTablesForTest(schema, "test_pkg")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	code := string(result)
+
+	// Table def name should use the table name
+	assert.Contains(t, code, "type usersTableDef struct{}")
+	assert.Contains(t, code, `func (usersTableDef) TableName() string { return "users" }`)
+
+	// Go type references should use the type name (User), not the table name (Users)
+	assert.Contains(t, code, "func (usersTableDef) DecodeRow(r bsatn.Reader) (*User, error)")
+	assert.Contains(t, code, "return ReadUser(r)")
+	assert.Contains(t, code, "func (usersTableDef) EncodeRow(row *User) []byte")
+	assert.Contains(t, code, "func (usersTableDef) PrimaryKey(row *User) uint64")
+	assert.Contains(t, code, "type UserTable = cache.TypedTableCache[*User]")
+
+	// Should NOT contain the wrong table-name-derived type references
+	assert.NotContains(t, code, "*Users")
+	assert.NotContains(t, code, "ReadUsers")
+	assert.NotContains(t, code, "UsersTable")
+}
+
 func TestGenerateTables_TypesImportForPK(t *testing.T) {
 	schema := &clientgen.ModuleSchema{
 		Typespace: []clientgen.AlgebraicType{

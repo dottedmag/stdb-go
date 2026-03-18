@@ -1,0 +1,60 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "name", "algebraic_type": {"String": null}},
+                {"name": "email", "algebraic_type": {"String": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "User"},
+            "ty": 0,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "users",
+            "product_type_ref": 0,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [{"source_name": null, "col_id": 0, "start": null}],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      },
+      {
+        "Reducers": [
+          {
+            "source_name": "add_user",
+            "params": {
+              "elements": [
+                {"name": "name", "algebraic_type": {"String": null}},
+                {"name": "email", "algebraic_type": {"String": null}}
+              ]
+            },
+            "visibility": "ClientCallable",
+            "ok_return_type": {"Product": {"elements": []}},
+            "err_return_type": {"String": null}
+          }
+        ]
+      }
+    ]
+  }
+}

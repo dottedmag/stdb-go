@@ -21,14 +21,23 @@ func generateModule(schema *ModuleSchema, pkgName string) ([]byte, error) {
 
 	var moduleCode strings.Builder
 
+	namedRefs := map[int]string{}
+	for _, t := range schema.Types {
+		namedRefs[t.TypeRef] = t.Name
+	}
+
 	// ModuleBindings struct
 	fmt.Fprintf(&moduleCode, "// ModuleBindings ties together all table and view caches for the module.\n")
 	fmt.Fprintf(&moduleCode, "type ModuleBindings struct {\n")
 	fmt.Fprintf(&moduleCode, "\tconn client.DbConnection\n")
 
 	for _, table := range schema.Tables {
-		goName := toGoName(table.Name)
-		fmt.Fprintf(&moduleCode, "\t%s *%sTable\n", goName, goName)
+		fieldName := toGoName(table.Name)
+		typeName := fieldName
+		if tn, ok := namedRefs[table.TypeRef]; ok {
+			typeName = toGoName(tn)
+		}
+		fmt.Fprintf(&moduleCode, "\t%s *%sTable\n", fieldName, typeName)
 	}
 
 	for _, view := range schema.Views {
@@ -46,7 +55,11 @@ func generateModule(schema *ModuleSchema, pkgName string) ([]byte, error) {
 	fmt.Fprintf(&moduleCode, "\tm := &ModuleBindings{conn: conn}\n")
 
 	for _, table := range schema.Tables {
-		goName := toGoName(table.Name)
+		fieldName := toGoName(table.Name)
+		typeName := fieldName
+		if tn, ok := namedRefs[table.TypeRef]; ok {
+			typeName = toGoName(tn)
+		}
 		defName := toLowerCamel(table.Name) + "TableDef"
 
 		// Determine if table has a single PK for RegisterTypedTableWithPK
@@ -60,10 +73,10 @@ func generateModule(schema *ModuleSchema, pkgName string) ([]byte, error) {
 				imports["types"] = "go.digitalxero.dev/spacetimedb-client/types"
 			}
 			fmt.Fprintf(&moduleCode, "\tm.%s = cache.RegisterTypedTableWithPK[*%s, %s](c, %s{})\n",
-				goName, goName, pkGoType, defName)
+				fieldName, typeName, pkGoType, defName)
 		} else {
 			fmt.Fprintf(&moduleCode, "\tm.%s = cache.RegisterTypedTable[*%s](c, %s{})\n",
-				goName, goName, defName)
+				fieldName, typeName, defName)
 		}
 	}
 
