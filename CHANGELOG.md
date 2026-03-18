@@ -1,8 +1,15 @@
 
+0.4.3
+=============
+2026-03-18
+
+* fix: name mismatch on gen (79fb3981)
+
 0.4.2
 =============
 2026-03-17
 
+* chore: update changelog (44c66d93)
 * fix: ensure fetching the schema from the server works (31bc8fbc)
 
 0.4.1
