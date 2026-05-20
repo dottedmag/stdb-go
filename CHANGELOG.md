@@ -1,8 +1,15 @@
 
+0.4.4
+=============
+2026-05-20
+
+* fix: accidental reappend _initialize to wasm (b9037e1a)
+
 0.4.3
 =============
 2026-03-18
 
+* chore: update changelog (ba3ec14a)
 * fix: name mismatch on gen (79fb3981)
 
 0.4.2

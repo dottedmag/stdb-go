@@ -1,7 +1,27 @@
-- semver: 0.4.3
-  date: 2026-03-18T18:50:11.043997823Z
+- semver: 0.4.4
+  date: 2026-05-20T02:05:24.242975414Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: b9037e1a45aeb662aa65342dc50cc6a62205f543
+      note: 'fix: accidental reappend _initialize to wasm'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.4.3
+  date: 2026-03-18T18:50:11Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: ba3ec14adb5548b15984108b13a0b66fa6ac5a7d
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 79fb3981d6ce230bfaecdc74b052e12d9189e299
       note: 'fix: name mismatch on gen'
       author:
