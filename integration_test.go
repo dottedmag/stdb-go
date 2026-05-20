@@ -4,6 +4,8 @@ package main_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -134,4 +136,46 @@ func TestIntegration(t *testing.T) {
 	// Once available, add:
 	//   t.Run("ClientConnect", ...) - connect via WebSocket, subscribe to player table
 	//   t.Run("ReducerRoundTrip", ...) - call reducers, verify data via subscription callbacks
+}
+
+// TestBuildDeterminism guards against regression of the +25-bytes-per-rebuild
+// drift reported by the OpenRPG team. Root cause: `go build -o file` recognizes
+// the embedded go:buildid in a prior run's output and skips the write, so
+// RewriteWASI ends up re-shimming its own previous output. The wrapPreinitWithInit
+// pass is not idempotent, so each rebuild grows the module by ~25 bytes,
+// eventually producing a binary that traps on __preinit__10_register at publish
+// time. The fix in cmd_build.go removes the output file before invoking go build.
+//
+// This test does NOT require a running SpacetimeDB.
+func TestBuildDeterminism(t *testing.T) {
+	moduleDir, err := filepath.Abs(testdataRoot())
+	require.NoError(t, err)
+
+	stdbGoBinary := buildStdbGo(t)
+	wasmOutput := filepath.Join(t.TempDir(), "module.wasm")
+
+	hashes := make([]string, 0, 3)
+	for i := 1; i <= 3; i++ {
+		cmd := exec.Command(stdbGoBinary, "build",
+			"--dir="+moduleDir,
+			"--output="+wasmOutput,
+			"--optimize=false",
+			"--wasi-shim=true",
+		)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		require.NoError(t, cmd.Run(), "build %d failed", i)
+
+		wasmBytes, err := os.ReadFile(wasmOutput)
+		require.NoError(t, err)
+		sum := sha256.Sum256(wasmBytes)
+		h := hex.EncodeToString(sum[:])
+		t.Logf("build %d: %d bytes, sha256=%s", i, len(wasmBytes), h)
+		hashes = append(hashes, h)
+	}
+
+	for i := 1; i < len(hashes); i++ {
+		assert.Equal(t, hashes[0], hashes[i],
+			"build %d hash differs from build 1 — non-deterministic output", i+1)
+	}
 }

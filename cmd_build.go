@@ -87,6 +87,17 @@ func runBuild(dir, output string, optimize, release, wasiShim bool) error {
 	}
 	buildArgs = append(buildArgs, "-o", absOutput, ".")
 
+	// Remove any pre-existing output so `go build` is forced to write fresh.
+	// Without this, `go build` recognizes the embedded go:buildid in a prior
+	// run's output and skips the write, leaving the file as whatever it was
+	// last (e.g. a WASI-shimmed binary from the previous build). RewriteWASI
+	// then re-shims its own output, which is not idempotent and grows the
+	// module by ~25 bytes per build, eventually producing a binary that
+	// traps on __preinit__10_register at publish time.
+	if err = os.Remove(absOutput); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("build: remove stale output: %w", err)
+	}
+
 	goCmd := exec.Command("go", buildArgs...)
 	goCmd.Dir = absDir
 	goCmd.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm")
