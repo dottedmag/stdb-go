@@ -408,10 +408,29 @@ type RawScopedTypeNameV10 struct {
 
 // RawScheduleDefV10 defines a scheduled reducer.
 type RawScheduleDefV10 struct {
-	SourceName    *string `json:"source_name"`
+	SourceName    *string `json:"-"`
 	TableName     string  `json:"table_name"`
 	ScheduleAtCol int     `json:"schedule_at_col"`
 	FunctionName  string  `json:"function_name"`
+}
+
+func (s *RawScheduleDefV10) UnmarshalJSON(data []byte) error {
+	// source_name is an Option (`{"some": "..."}` | `null`), not a bare string —
+	// the SpacetimeDB v2 server emits the Option form (matching indexes/sequences).
+	var raw struct {
+		SourceName    json.RawMessage `json:"source_name"`
+		TableName     string          `json:"table_name"`
+		ScheduleAtCol int             `json:"schedule_at_col"`
+		FunctionName  string          `json:"function_name"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	s.SourceName = unmarshalOptionStringPtr(raw.SourceName)
+	s.TableName = raw.TableName
+	s.ScheduleAtCol = raw.ScheduleAtCol
+	s.FunctionName = raw.FunctionName
+	return nil
 }
 
 // --- Lifecycle reducer definitions ---
