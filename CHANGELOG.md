@@ -1,8 +1,15 @@
 
+0.4.5
+=============
+2026-06-25
+
+* fix: make sure the RawScheduleDefV10 generates the correct source (75bb7527)
+
 0.4.4
 =============
 2026-05-20
 
+* chore: update changelog (f6dc72d1)
 * fix: accidental reappend _initialize to wasm (b9037e1a)
 
 0.4.3

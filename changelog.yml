@@ -1,7 +1,27 @@
-- semver: 0.4.4
-  date: 2026-05-20T02:05:24.242975414Z
+- semver: 0.4.5
+  date: 2026-06-25T23:56:45.759860096Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: 75bb752718899b7b2f4df559a44e290fc0fdbb42
+      note: 'fix: make sure the RawScheduleDefV10 generates the correct source'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.4.4
+  date: 2026-05-20T02:05:24Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: f6dc72d18e72a89f9f9003f257dd2b3a55bdeb37
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: b9037e1a45aeb662aa65342dc50cc6a62205f543
       note: 'fix: accidental reappend _initialize to wasm'
       author:
