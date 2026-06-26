@@ -1,7 +1,27 @@
-- semver: 0.4.5
-  date: 2026-06-25T23:56:45.759860096Z
+- semver: 0.4.6
+  date: 2026-06-26T19:32:47.656855859Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: 589797931f265627c17b45cf66c95b02c0d5d33e
+      note: 'fix: properly support default column values'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.4.5
+  date: 2026-06-25T23:56:45Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: ea1037e2461ccaed1821e00a40dfc7e36439f6ed
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 75bb752718899b7b2f4df559a44e290fc0fdbb42
       note: 'fix: make sure the RawScheduleDefV10 generates the correct source'
       author:

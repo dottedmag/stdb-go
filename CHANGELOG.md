@@ -1,8 +1,15 @@
 
+0.4.6
+=============
+2026-06-26
+
+* fix: properly support default column values (58979793)
+
 0.4.5
 =============
 2026-06-25
 
+* chore: update changelog (ea1037e2)
 * fix: make sure the RawScheduleDefV10 generates the correct source (75bb7527)
 
 0.4.4
