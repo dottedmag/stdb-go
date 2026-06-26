@@ -64,6 +64,7 @@ type ParsedField struct {
 	Unique      bool
 	IndexBTree  bool
 	IndexDirect bool
+	Default     *string // from default=<value>; nil means "no default" (distinct from default="")
 }
 
 // ParsedReducer represents a reducer declared via //stdb:reducer directive.
@@ -501,22 +502,65 @@ func parseFieldTag(field ParsedField, tag string) ParsedField {
 	}
 	stdbTag := rest[:endIdx]
 
-	for _, part := range strings.Split(stdbTag, ",") {
+	for _, part := range splitTagParts(stdbTag) {
 		part = strings.TrimSpace(part)
-		switch part {
-		case "primarykey":
+		switch {
+		case part == "primarykey":
 			field.PrimaryKey = true
-		case "autoinc":
+		case part == "autoinc":
 			field.AutoInc = true
-		case "unique":
+		case part == "unique":
 			field.Unique = true
-		case "index=btree":
+		case part == "index=btree":
 			field.IndexBTree = true
-		case "index=direct":
+		case part == "index=direct":
 			field.IndexDirect = true
+		case strings.HasPrefix(part, "default="):
+			v := unquoteTagValue(strings.TrimPrefix(part, "default="))
+			field.Default = &v
 		}
 	}
 	return field
+}
+
+// splitTagParts splits a comma-separated stdb tag value into parts, treating
+// commas inside single quotes as literal. This lets a default= value contain
+// commas and spaces, e.g. stdb:"default='a, b, c'".
+func splitTagParts(tag string) []string {
+	var parts []string
+	var sb strings.Builder
+	inQuote := false
+	for i := 0; i < len(tag); i++ {
+		c := tag[i]
+		switch {
+		case c == '\\' && i+1 < len(tag):
+			// Preserve the escape sequence verbatim; unquoteTagValue handles it.
+			sb.WriteByte(c)
+			sb.WriteByte(tag[i+1])
+			i++
+		case c == '\'':
+			inQuote = !inQuote
+			sb.WriteByte(c)
+		case c == ',' && !inQuote:
+			parts = append(parts, sb.String())
+			sb.Reset()
+		default:
+			sb.WriteByte(c)
+		}
+	}
+	parts = append(parts, sb.String())
+	return parts
+}
+
+// unquoteTagValue strips a single pair of surrounding single quotes (if present)
+// from a tag value and unescapes \' sequences. A bare value is returned as-is.
+func unquoteTagValue(v string) string {
+	v = strings.TrimSpace(v)
+	if len(v) >= 2 && v[0] == '\'' && v[len(v)-1] == '\'' {
+		inner := v[1 : len(v)-1]
+		return strings.ReplaceAll(inner, `\'`, `'`)
+	}
+	return v
 }
 
 // typeExprToString converts an AST type expression to a string representation.

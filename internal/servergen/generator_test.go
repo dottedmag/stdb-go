@@ -59,3 +59,4 @@ func TestGolden_RLS(t *testing.T)           { runGoldenTest(t, "rls") }
 func TestGolden_TypeAliases(t *testing.T)   { runGoldenTest(t, "type_aliases") }
 func TestGolden_NestedStructs(t *testing.T) { runGoldenTest(t, "nested_structs") }
 func TestGolden_Comprehensive(t *testing.T) { runGoldenTest(t, "comprehensive") }
+func TestGolden_Defaults(t *testing.T)      { runGoldenTest(t, "defaults") }

@@ -66,6 +66,7 @@ type AnalyzedField struct {
 	IndexBTree  bool
 	IndexDirect bool
 	ColIndex    uint16
+	Default     *string // from default=<value>; nil means "no default"
 }
 
 // AlgType represents an algebraic type in the typespace.
@@ -514,6 +515,9 @@ func (a *analyzer) resolveStructType(name string) (*AnalyzedType, error) {
 		if err != nil {
 			return nil, fmt.Errorf("struct %s field %s: %w", name, f.GoName, err)
 		}
+		if f.Default != nil && f.AutoInc {
+			return nil, fmt.Errorf("struct %s field %s: a default value cannot be combined with autoinc (the sequence supplies values)", name, f.GoName)
+		}
 		at.Fields = append(at.Fields, AnalyzedField{
 			GoName:      f.GoName,
 			BsatnName:   f.BsatnName,
@@ -525,6 +529,7 @@ func (a *analyzer) resolveStructType(name string) (*AnalyzedType, error) {
 			IndexBTree:  f.IndexBTree,
 			IndexDirect: f.IndexDirect,
 			ColIndex:    uint16(i),
+			Default:     f.Default,
 		})
 	}
 

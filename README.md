@@ -36,8 +36,8 @@ go get go.digitalxero.dev/stdb-go
 package main
 
 import (
-    "github.com/clockworklabs/SpacetimeDB/sdks/go/server/reducer"
-    "github.com/clockworklabs/SpacetimeDB/sdks/go/types"
+    "go.digitalxero.dev/spacetimedb-server/reducer"
+    "go.digitalxero.dev/spacetimedb-client/types"
 )
 
 //stdb:table name=player access=public
@@ -361,7 +361,7 @@ func AddScore(ctx reducer.ReducerContext, score ScoreAlias) {}
 
 ### Special Types
 
-Import from `github.com/clockworklabs/SpacetimeDB/sdks/go/types`:
+Import from `go.digitalxero.dev/spacetimedb-client/types`:
 
 | Go Type              | BSATN Representation | Description |
 |----------------------|---------------------|-------------|

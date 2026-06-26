@@ -1,7 +1,10 @@
 package servergen
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/big"
+	"strconv"
 	"strings"
 
 	"go.digitalxero.dev/stdb-go/internal/parser"
@@ -9,7 +12,7 @@ import (
 
 // generateModuleDef generates the stdbDescribeModule function that builds the
 // module definition statically (no reflection).
-func generateModuleDef(module *AnalyzedModule, w *strings.Builder) {
+func generateModuleDef(module *AnalyzedModule, w *strings.Builder) error {
 	fmt.Fprintf(w, "func stdbDescribeModule() []byte {\n")
 	fmt.Fprintf(w, "\tts := types.NewTypespace()\n")
 	fmt.Fprintf(w, "\tbuilder := moduledef.NewModuleDefBuilder()\n\n")
@@ -46,7 +49,9 @@ func generateModuleDef(module *AnalyzedModule, w *strings.Builder) {
 
 	// Add tables.
 	for _, table := range module.Tables {
-		writeTableDef(w, &table, module)
+		if err := writeTableDef(w, &table, module); err != nil {
+			return err
+		}
 	}
 
 	// Add reducers.
@@ -82,6 +87,7 @@ func generateModuleDef(module *AnalyzedModule, w *strings.Builder) {
 	fmt.Fprintf(w, "\n\tbuilder = builder.SetTypespace(ts)\n")
 	fmt.Fprintf(w, "\treturn bsatn.Encode(builder.Build())\n")
 	fmt.Fprintf(w, "}\n\n")
+	return nil
 }
 
 // writeTypespaceStruct writes code to fill a struct type in the typespace.
@@ -143,8 +149,30 @@ func writeTypeDef(w *strings.Builder, t *AnalyzedType, varName string) {
 }
 
 // writeTableDef writes code to add a TableDef to the module definition.
-func writeTableDef(w *strings.Builder, table *AnalyzedTable, module *AnalyzedModule) {
+func writeTableDef(w *strings.Builder, table *AnalyzedTable, module *AnalyzedModule) error {
 	refVar := "ref" + table.StructName
+
+	// Pre-encode column default values into local bsatn writers, emitted before
+	// the builder chain. The byte output must match what the column codec would
+	// produce for that value: the migration planner decodes it to backfill rows.
+	type defaultEntry struct {
+		colIndex uint16
+		varName  string
+	}
+	var defaults []defaultEntry
+	for i := range table.Fields {
+		f := table.Fields[i]
+		if f.Default == nil {
+			continue
+		}
+		varName := fmt.Sprintf("stdbDef_%s_%s", table.Name, f.BsatnName)
+		fmt.Fprintf(w, "\t%s := bsatn.NewWriter(16)\n", varName)
+		fieldDesc := fmt.Sprintf("table %s field %s", table.Name, f.GoName)
+		if err := writeDefaultEncoding(w, varName, f.AlgType, *f.Default, fieldDesc, module); err != nil {
+			return err
+		}
+		defaults = append(defaults, defaultEntry{colIndex: f.ColIndex, varName: varName})
+	}
 
 	fmt.Fprintf(w, "\tbuilder = builder.AddTable(moduledef.NewTableDefBuilder(%q).\n", table.Name)
 	fmt.Fprintf(w, "\t\tWithProductTypeRef(%s).\n", refVar)
@@ -208,7 +236,265 @@ func writeTableDef(w *strings.Builder, table *AnalyzedTable, module *AnalyzedMod
 		fmt.Fprintf(w, "\t\tWithIndex(moduledef.NewBTreeIndexDef(stdbStrPtr(%q), %s).Build()).\n", idx.Name, strings.Join(colStrs, ", "))
 	}
 
+	// Column default values.
+	for _, d := range defaults {
+		fmt.Fprintf(w, "\t\tWithDefaultValue(moduledef.NewColumnDefaultValue(%d, %s.Bytes())).\n", d.colIndex, d.varName)
+	}
+
 	fmt.Fprintf(w, "\t\tBuild())\n\n")
+	return nil
+}
+
+// writeDefaultEncoding emits bsatn writer calls (on varName) that encode the
+// default literal as the BSATN AlgebraicValue for the column's type. The output
+// must match what the column codec would produce for that value, since the
+// SpacetimeDB migration planner decodes it to backfill existing rows.
+func writeDefaultEncoding(w *strings.Builder, varName string, at AlgType, literal, fieldDesc string, module *AnalyzedModule) error {
+	// Universal escape hatch: raw:<hex> writes pre-encoded BSATN verbatim.
+	if raw, ok := strings.CutPrefix(literal, "raw:"); ok {
+		b, err := decodeHexLiteral(raw)
+		if err != nil {
+			return fmt.Errorf("%s: invalid raw default %q: %w", fieldDesc, literal, err)
+		}
+		fmt.Fprintf(w, "\t%s.PutBytes(%s)\n", varName, goByteSlice(b))
+		return nil
+	}
+
+	switch at.Kind {
+	case AlgKindBool:
+		b, err := strconv.ParseBool(literal)
+		if err != nil {
+			return fmt.Errorf("%s: invalid bool default %q", fieldDesc, literal)
+		}
+		fmt.Fprintf(w, "\t%s.PutBool(%v)\n", varName, b)
+	case AlgKindU8, AlgKindU16, AlgKindU32, AlgKindU64:
+		v, err := strconv.ParseUint(literal, 0, uintBits(at.Kind))
+		if err != nil {
+			return fmt.Errorf("%s: invalid unsigned-int default %q: %w", fieldDesc, literal, err)
+		}
+		fmt.Fprintf(w, "\t%s.%s(%d)\n", varName, uintPutMethod(at.Kind), v)
+	case AlgKindI8, AlgKindI16, AlgKindI32, AlgKindI64:
+		v, err := strconv.ParseInt(literal, 0, intBits(at.Kind))
+		if err != nil {
+			return fmt.Errorf("%s: invalid signed-int default %q: %w", fieldDesc, literal, err)
+		}
+		fmt.Fprintf(w, "\t%s.%s(%d)\n", varName, intPutMethod(at.Kind), v)
+	case AlgKindF32:
+		f, err := strconv.ParseFloat(literal, 32)
+		if err != nil {
+			return fmt.Errorf("%s: invalid float default %q", fieldDesc, literal)
+		}
+		fmt.Fprintf(w, "\t%s.PutF32(%s)\n", varName, strconv.FormatFloat(f, 'g', -1, 32))
+	case AlgKindF64:
+		f, err := strconv.ParseFloat(literal, 64)
+		if err != nil {
+			return fmt.Errorf("%s: invalid float default %q", fieldDesc, literal)
+		}
+		fmt.Fprintf(w, "\t%s.PutF64(%s)\n", varName, strconv.FormatFloat(f, 'g', -1, 64))
+	case AlgKindString:
+		fmt.Fprintf(w, "\t%s.PutString(%q)\n", varName, literal)
+	case AlgKindU128, AlgKindU256, AlgKindI128, AlgKindI256:
+		width, signed := intWidthBytes(at.Kind)
+		b, err := bigIntLEBytes(literal, width, signed)
+		if err != nil {
+			return fmt.Errorf("%s: invalid 128/256-bit default %q: %w", fieldDesc, literal, err)
+		}
+		fmt.Fprintf(w, "\t%s.PutBytes(%s)\n", varName, goByteSlice(b))
+	case AlgKindBytes:
+		// []byte column -> array of u8: length prefix followed by the bytes.
+		b, err := decodeHexLiteral(literal)
+		if err != nil {
+			return fmt.Errorf("%s: invalid []byte default %q (expected hex or empty): %w", fieldDesc, literal, err)
+		}
+		fmt.Fprintf(w, "\t%s.PutArrayLen(%d)\n", varName, len(b))
+		if len(b) > 0 {
+			fmt.Fprintf(w, "\t%s.PutBytes(%s)\n", varName, goByteSlice(b))
+		}
+	case AlgKindArray:
+		// Only the empty array is expressible as a literal; use raw: for the rest.
+		if literal == "" || literal == "[]" {
+			fmt.Fprintf(w, "\t%s.PutArrayLen(0)\n", varName)
+		} else {
+			return fmt.Errorf("%s: non-empty array defaults are not supported; use default=raw:<hex>", fieldDesc)
+		}
+	case AlgKindOption:
+		// Option<T> is Sum(some: T @tag 0, none: () @tag 1).
+		if literal == "null" || literal == "none" {
+			fmt.Fprintf(w, "\t%s.PutSumTag(1)\n", varName)
+		} else {
+			fmt.Fprintf(w, "\t%s.PutSumTag(0)\n", varName)
+			if at.ElemType == nil {
+				return fmt.Errorf("%s: option default has no element type", fieldDesc)
+			}
+			if err := writeDefaultEncoding(w, varName, *at.ElemType, literal, fieldDesc, module); err != nil {
+				return err
+			}
+		}
+	case AlgKindTimestamp, AlgKindTimeDuration:
+		// Both wrap a single I64 micros field; the value encoding is just that I64.
+		v, err := strconv.ParseInt(literal, 0, 64)
+		if err != nil {
+			return fmt.Errorf("%s: invalid timestamp/duration micros default %q", fieldDesc, literal)
+		}
+		fmt.Fprintf(w, "\t%s.PutI64(%d)\n", varName, v)
+	case AlgKindRef:
+		t := module.Types[at.TypeName]
+		if t == nil || t.Kind != TypeKindSimpleEnum {
+			return fmt.Errorf("%s: literal defaults for type %q are not supported; use default=raw:<hex>", fieldDesc, at.TypeName)
+		}
+		tag, err := resolveEnumTag(t, literal)
+		if err != nil {
+			return fmt.Errorf("%s: %w", fieldDesc, err)
+		}
+		fmt.Fprintf(w, "\t%s.PutSumTag(%d)\n", varName, tag)
+	default:
+		return fmt.Errorf("%s: literal defaults for this type are not supported; use default=raw:<hex>", fieldDesc)
+	}
+	return nil
+}
+
+// uintBits / intBits return the bit width for range-validating an integer literal.
+func uintBits(k AlgKind) int {
+	switch k {
+	case AlgKindU8:
+		return 8
+	case AlgKindU16:
+		return 16
+	case AlgKindU32:
+		return 32
+	default:
+		return 64
+	}
+}
+
+func intBits(k AlgKind) int {
+	switch k {
+	case AlgKindI8:
+		return 8
+	case AlgKindI16:
+		return 16
+	case AlgKindI32:
+		return 32
+	default:
+		return 64
+	}
+}
+
+func uintPutMethod(k AlgKind) string {
+	switch k {
+	case AlgKindU8:
+		return "PutU8"
+	case AlgKindU16:
+		return "PutU16"
+	case AlgKindU32:
+		return "PutU32"
+	default:
+		return "PutU64"
+	}
+}
+
+func intPutMethod(k AlgKind) string {
+	switch k {
+	case AlgKindI8:
+		return "PutI8"
+	case AlgKindI16:
+		return "PutI16"
+	case AlgKindI32:
+		return "PutI32"
+	default:
+		return "PutI64"
+	}
+}
+
+// intWidthBytes returns the byte width and signedness for 128/256-bit integers.
+func intWidthBytes(k AlgKind) (width int, signed bool) {
+	switch k {
+	case AlgKindU128:
+		return 16, false
+	case AlgKindI128:
+		return 16, true
+	case AlgKindU256:
+		return 32, false
+	default: // AlgKindI256
+		return 32, true
+	}
+}
+
+// bigIntLEBytes parses an integer literal (decimal, 0x.., 0o.., 0b..) and returns
+// its little-endian two's-complement byte representation in exactly width bytes.
+func bigIntLEBytes(s string, width int, signed bool) ([]byte, error) {
+	n := new(big.Int)
+	if _, ok := n.SetString(strings.TrimSpace(s), 0); !ok {
+		return nil, fmt.Errorf("not an integer: %q", s)
+	}
+	out := make([]byte, width)
+	if n.Sign() >= 0 {
+		b := n.Bytes() // big-endian, minimal
+		if len(b) > width {
+			return nil, fmt.Errorf("value out of range for %d bytes", width)
+		}
+		for i := range b {
+			out[i] = b[len(b)-1-i] // big-endian -> little-endian
+		}
+		return out, nil
+	}
+	if !signed {
+		return nil, fmt.Errorf("negative value for unsigned type")
+	}
+	// Two's complement over width bytes: 2^(width*8) + n (n is negative).
+	mod := new(big.Int).Lsh(big.NewInt(1), uint(width*8))
+	tc := new(big.Int).Add(mod, n)
+	if tc.Sign() < 0 {
+		return nil, fmt.Errorf("value out of range for %d bytes", width)
+	}
+	b := tc.Bytes()
+	if len(b) > width {
+		return nil, fmt.Errorf("value out of range for %d bytes", width)
+	}
+	for i := range b {
+		out[i] = b[len(b)-1-i]
+	}
+	return out, nil
+}
+
+// decodeHexLiteral decodes an optional-0x-prefixed hex string; "" yields no bytes.
+func decodeHexLiteral(s string) ([]byte, error) {
+	s = strings.TrimSpace(s)
+	s = strings.TrimPrefix(s, "0x")
+	s = strings.TrimPrefix(s, "0X")
+	if s == "" {
+		return nil, nil
+	}
+	return hex.DecodeString(s)
+}
+
+// goByteSlice renders bytes as a Go []byte literal (or nil when empty).
+func goByteSlice(b []byte) string {
+	if len(b) == 0 {
+		return "nil"
+	}
+	parts := make([]string, len(b))
+	for i, by := range b {
+		parts[i] = fmt.Sprintf("0x%02x", by)
+	}
+	return "[]byte{" + strings.Join(parts, ", ") + "}"
+}
+
+// resolveEnumTag maps an enum default literal (variant name or numeric index)
+// to its sum-type tag.
+func resolveEnumTag(t *AnalyzedType, literal string) (int, error) {
+	for i, name := range t.EnumVariants {
+		if name == literal {
+			return i, nil
+		}
+	}
+	if idx, err := strconv.Atoi(literal); err == nil {
+		if idx >= 0 && idx < len(t.EnumVariants) {
+			return idx, nil
+		}
+		return 0, fmt.Errorf("enum index %d out of range for %s (0..%d)", idx, t.Name, len(t.EnumVariants)-1)
+	}
+	return 0, fmt.Errorf("unknown enum variant %q for %s", literal, t.Name)
 }
 
 // writeReducerDef writes code to add a ReducerDef.

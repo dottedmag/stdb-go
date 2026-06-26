@@ -47,7 +47,9 @@ func Generate(module *AnalyzedModule) ([]byte, error) {
 	generateReducerDispatch(module, &w)
 
 	// Module definition function.
-	generateModuleDef(module, &w)
+	if err := generateModuleDef(module, &w); err != nil {
+		return nil, err
+	}
 
 	// init() function to register handlers.
 	generateInit(module, &w)
