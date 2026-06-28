@@ -3,6 +3,7 @@
 package module_bindings
 
 import (
+	"context"
 	"go.digitalxero.dev/spacetimedb-client/bsatn"
 	"go.digitalxero.dev/spacetimedb-client/client"
 )
@@ -16,11 +17,35 @@ func (a *getUserArgs) WriteBsatn(w bsatn.Writer) {
 }
 
 // CallGetUser calls the get_user procedure on the server.
-func CallGetUser(conn client.DbConnection, userID uint64) error {
+func CallGetUser(ctx context.Context, conn client.DbConnection, userID uint64) (User, error) {
+	var zero User
 	args := &getUserArgs{
 		UserID: userID,
 	}
-	return conn.CallReducer("get_user", args)
+	raw, err := conn.CallProcedure(ctx, "get_user", args)
+	if err != nil {
+		return zero, err
+	}
+	result, err := readGetUserResult(bsatn.NewReader(raw))
+	if err != nil {
+		return zero, err
+	}
+	return *result, nil
+}
+
+func readGetUserResult(r bsatn.Reader) (*User, error) {
+	var result User
+	var err error
+	{
+		var decoded *User
+		decoded, err = ReadUser(r)
+		if err != nil {
+			return nil, err
+		}
+		result = *decoded
+	}
+	_ = err
+	return &result, nil
 }
 
 type searchUsersArgs struct {
@@ -34,10 +59,44 @@ func (a *searchUsersArgs) WriteBsatn(w bsatn.Writer) {
 }
 
 // CallSearchUsers calls the search_users procedure on the server.
-func CallSearchUsers(conn client.DbConnection, query string, limit uint32) error {
+func CallSearchUsers(ctx context.Context, conn client.DbConnection, query string, limit uint32) ([]User, error) {
+	var zero []User
 	args := &searchUsersArgs{
 		Query: query,
 		Limit: limit,
 	}
-	return conn.CallReducer("search_users", args)
+	raw, err := conn.CallProcedure(ctx, "search_users", args)
+	if err != nil {
+		return zero, err
+	}
+	result, err := readSearchUsersResult(bsatn.NewReader(raw))
+	if err != nil {
+		return zero, err
+	}
+	return *result, nil
+}
+
+func readSearchUsersResult(r bsatn.Reader) (*[]User, error) {
+	var result []User
+	var err error
+	{
+		var arrLen uint32
+		arrLen, err = r.GetArrayLen()
+		if err != nil {
+			return nil, err
+		}
+		result = make([]User, arrLen)
+		for i := uint32(0); i < arrLen; i++ {
+			{
+				var decoded *User
+				decoded, err = ReadUser(r)
+				if err != nil {
+					return nil, err
+				}
+				result[i] = *decoded
+			}
+		}
+	}
+	_ = err
+	return &result, nil
 }

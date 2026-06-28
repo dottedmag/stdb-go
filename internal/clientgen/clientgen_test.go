@@ -80,6 +80,10 @@ func TestClientGen_Procedures(t *testing.T) {
 	runClientGenGoldenTest(t, "procedures")
 }
 
+func TestClientGen_Procedures_DiverseReturns(t *testing.T) {
+	runClientGenGoldenTest(t, "proc_returns")
+}
+
 func TestClientGen_Views(t *testing.T) {
 	runClientGenGoldenTest(t, "views")
 }

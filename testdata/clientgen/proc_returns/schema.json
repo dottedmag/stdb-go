@@ -1,0 +1,98 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": [
+          {
+            "Product": {
+              "elements": [
+                {"name": "id", "algebraic_type": {"U64": null}},
+                {"name": "name", "algebraic_type": {"String": null}}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "Types": [
+          {
+            "source_name": {"scope": [], "source_name": "User"},
+            "ty": 0,
+            "custom_ordering": false
+          }
+        ]
+      },
+      {
+        "Tables": [
+          {
+            "source_name": "User",
+            "product_type_ref": 0,
+            "primary_key": 0,
+            "indexes": [],
+            "constraints": [],
+            "sequences": [],
+            "table_type": "User",
+            "table_access": "Public",
+            "default_values": [],
+            "is_event": false
+          }
+        ]
+      },
+      {
+        "Procedures": [
+          {
+            "source_name": "count_users",
+            "params": {"elements": []},
+            "return_type": {"U64": null},
+            "visibility": "ClientCallable"
+          },
+          {
+            "source_name": "greeting",
+            "params": {
+              "elements": [
+                {"name": "name", "algebraic_type": {"String": null}}
+              ]
+            },
+            "return_type": {"String": null},
+            "visibility": "ClientCallable"
+          },
+          {
+            "source_name": "is_ready",
+            "params": {"elements": []},
+            "return_type": {"Bool": null},
+            "visibility": "ClientCallable"
+          },
+          {
+            "source_name": "maybe_user",
+            "params": {
+              "elements": [
+                {"name": "user_id", "algebraic_type": {"U64": null}}
+              ]
+            },
+            "return_type": {
+              "Sum": {
+                "variants": [
+                  {"name": "some", "algebraic_type": {"Ref": 0}},
+                  {"name": "none", "algebraic_type": {"Product": {"elements": []}}}
+                ]
+              }
+            },
+            "visibility": "ClientCallable"
+          },
+          {
+            "source_name": "all_names",
+            "params": {"elements": []},
+            "return_type": {"Array": {"String": null}},
+            "visibility": "ClientCallable"
+          },
+          {
+            "source_name": "do_cleanup",
+            "params": {"elements": []},
+            "return_type": {"Product": {"elements": []}},
+            "visibility": "ClientCallable"
+          }
+        ]
+      }
+    ]
+  }
+}

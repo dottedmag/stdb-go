@@ -3,6 +3,7 @@
 package module_bindings
 
 import (
+	"context"
 	"go.digitalxero.dev/spacetimedb-client/bsatn"
 	"go.digitalxero.dev/spacetimedb-client/client"
 )
@@ -16,14 +17,62 @@ func (a *publicQueryArgs) WriteBsatn(w bsatn.Writer) {
 }
 
 // CallPublicQuery calls the public_query procedure on the server.
-func CallPublicQuery(conn client.DbConnection, id uint64) error {
+func CallPublicQuery(ctx context.Context, conn client.DbConnection, id uint64) (PublicItem, error) {
+	var zero PublicItem
 	args := &publicQueryArgs{
 		ID: id,
 	}
-	return conn.CallReducer("public_query", args)
+	raw, err := conn.CallProcedure(ctx, "public_query", args)
+	if err != nil {
+		return zero, err
+	}
+	result, err := readPublicQueryResult(bsatn.NewReader(raw))
+	if err != nil {
+		return zero, err
+	}
+	return *result, nil
+}
+
+func readPublicQueryResult(r bsatn.Reader) (*PublicItem, error) {
+	var result PublicItem
+	var err error
+	{
+		var decoded *PublicItem
+		decoded, err = ReadPublicItem(r)
+		if err != nil {
+			return nil, err
+		}
+		result = *decoded
+	}
+	_ = err
+	return &result, nil
 }
 
 // CallPrivateQuery calls the private_query procedure on the server.
-func CallPrivateQuery(conn client.DbConnection) error {
-	return conn.CallReducer("private_query", nil)
+func CallPrivateQuery(ctx context.Context, conn client.DbConnection) (PrivateConfig, error) {
+	var zero PrivateConfig
+	raw, err := conn.CallProcedure(ctx, "private_query", nil)
+	if err != nil {
+		return zero, err
+	}
+	result, err := readPrivateQueryResult(bsatn.NewReader(raw))
+	if err != nil {
+		return zero, err
+	}
+	return *result, nil
+}
+
+func readPrivateQueryResult(r bsatn.Reader) (*PrivateConfig, error) {
+	var result PrivateConfig
+	var err error
+	{
+		var decoded *PrivateConfig
+		decoded, err = ReadPrivateConfig(r)
+		if err != nil {
+			return nil, err
+		}
+		result = *decoded
+	}
+	_ = err
+	return &result, nil
 }

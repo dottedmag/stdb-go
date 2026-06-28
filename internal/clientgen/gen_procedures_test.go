@@ -48,8 +48,10 @@ func TestGenerateProcedures_WithParams(t *testing.T) {
 	assert.Contains(t, code, "type getUserArgs struct")
 	assert.Contains(t, code, "UserID uint64")
 	assert.Contains(t, code, "func (a *getUserArgs) WriteBsatn(w bsatn.Writer)")
-	assert.Contains(t, code, "func CallGetUser(conn client.DbConnection, userID uint64) error")
-	assert.Contains(t, code, `conn.CallReducer("get_user", args)`)
+	assert.Contains(t, code, "func CallGetUser(ctx context.Context, conn client.DbConnection, userID uint64) (User, error)")
+	assert.Contains(t, code, `conn.CallProcedure(ctx, "get_user", args)`)
+	assert.Contains(t, code, "func readGetUserResult(r bsatn.Reader) (*User, error)")
+	assert.NotContains(t, code, "CallReducer")
 }
 
 func TestGenerateProcedures_NoParams(t *testing.T) {
@@ -69,8 +71,9 @@ func TestGenerateProcedures_NoParams(t *testing.T) {
 
 	code := string(result)
 	assert.NotContains(t, code, "listAllArgs")
-	assert.Contains(t, code, "func CallListAll(conn client.DbConnection) error")
-	assert.Contains(t, code, `conn.CallReducer("list_all", nil)`)
+	assert.Contains(t, code, "func CallListAll(ctx context.Context, conn client.DbConnection) (string, error)")
+	assert.Contains(t, code, `conn.CallProcedure(ctx, "list_all", nil)`)
+	assert.Contains(t, code, "func readListAllResult(r bsatn.Reader) (*string, error)")
 }
 
 func TestGenerateProcedures_MultipleProcedures(t *testing.T) {
