@@ -1,7 +1,27 @@
-- semver: 0.4.6
-  date: 2026-06-26T19:32:47.656855859Z
+- semver: 0.4.7
+  date: 2026-06-28T23:49:53.248632339Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: d0de49c727ad139edb17398ba360a2459e7031a3
+      note: 'fix: properly generate client code for procedures'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.4.6
+  date: 2026-06-26T19:32:47Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: dd8e6f2ca6400c9c50aa05336bc5bf8bae849317
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 589797931f265627c17b45cf66c95b02c0d5d33e
       note: 'fix: properly support default column values'
       author:

@@ -1,8 +1,15 @@
 
+0.4.7
+=============
+2026-06-28
+
+* fix: properly generate client code for procedures (d0de49c7)
+
 0.4.6
 =============
 2026-06-26
 
+* chore: update changelog (dd8e6f2c)
 * fix: properly support default column values (58979793)
 
 0.4.5
