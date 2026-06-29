@@ -1,7 +1,27 @@
-- semver: 0.4.7
-  date: 2026-06-28T23:49:53.248632339Z
+- semver: 0.5.0
+  date: 2026-06-29T10:15:21.403108774Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: 28c8f430b81af3ae5e1639f69ad7f41695d20a97
+      note: 'feat: update cli flags for newer stdb versions'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.4.7
+  date: 2026-06-28T23:49:53Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: 7e0c0bcbab4fe92a2ab84242f0040981565ea159
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: d0de49c727ad139edb17398ba360a2459e7031a3
       note: 'fix: properly generate client code for procedures'
       author:

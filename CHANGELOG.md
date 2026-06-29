@@ -1,8 +1,15 @@
 
+0.5.0
+=============
+2026-06-29
+
+* feat: update cli flags for newer stdb versions (28c8f430)
+
 0.4.7
 =============
 2026-06-28
 
+* chore: update changelog (7e0c0bcb)
 * fix: properly generate client code for procedures (d0de49c7)
 
 0.4.6
