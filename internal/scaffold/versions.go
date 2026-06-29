@@ -12,8 +12,8 @@ const (
 
 	clientSDKModule          = "go.digitalxero.dev/spacetimedb-client"
 	serverSDKModule          = "go.digitalxero.dev/spacetimedb-server"
-	fallbackClientSDKVersion = "v0.5.0"
-	fallbackServerSDKVersion = "v0.4.1"
+	fallbackClientSDKVersion = "v0.6.0"
+	fallbackServerSDKVersion = "v0.5.0"
 )
 
 type proxyResponse struct {

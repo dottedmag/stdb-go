@@ -121,6 +121,11 @@ func (t *stdbScheduledProcTableTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbScheduledProcTableTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbScheduledProcTableTableHandle) FindByScheduledId(key uint64) (ScheduledProcTable, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("scheduled_proc_table_scheduled_id_idx_btree")

@@ -19,6 +19,11 @@ func newPublishCmd() *cobra.Command {
 		token         string
 		wasmFile      string
 		clearDatabase bool
+		deleteData    string
+		breakClients  bool
+		numReplicas   uint
+		parent        string
+		organization  string
 		skipBuild     bool
 		autoConfirm   bool
 		wasiShim      bool
@@ -39,10 +44,28 @@ SpacetimeDB instance. It reads configuration from spacetime.json and
   # Publish a pre-built WASM file
   stdb-go publish -d my-database --wasm-file=module.wasm --skip-build
 
+  # Allow a schema change that breaks existing clients (e.g. a new default= column)
+  stdb-go publish -d my-database --break-clients
+
   # Clear the database before publishing
   stdb-go publish -d my-database --clear-database`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runPublish(dir, database, server, token, wasmFile, clearDatabase, skipBuild, autoConfirm, wasiShim)
+			return runPublish(publishArgs{
+				dir:           dir,
+				database:      database,
+				server:        server,
+				token:         token,
+				wasmFile:      wasmFile,
+				clearDatabase: clearDatabase,
+				deleteData:    deleteData,
+				breakClients:  breakClients,
+				numReplicas:   numReplicas,
+				parent:        parent,
+				organization:  organization,
+				skipBuild:     skipBuild,
+				autoConfirm:   autoConfirm,
+				wasiShim:      wasiShim,
+			})
 		},
 	}
 
@@ -51,18 +74,53 @@ SpacetimeDB instance. It reads configuration from spacetime.json and
 	cmd.Flags().StringVarP(&server, "server", "s", "", "server URL (default: from config or http://localhost:3000)")
 	cmd.Flags().StringVar(&token, "token", "", "auth token (default: from env or cli.toml)")
 	cmd.Flags().StringVar(&wasmFile, "wasm-file", "", "use pre-built WASM file instead of building")
-	cmd.Flags().BoolVar(&clearDatabase, "clear-database", false, "clear database before publishing")
+	cmd.Flags().BoolVar(&clearDatabase, "clear-database", false, "destroy all data before publishing (alias for --delete-data=always)")
+	cmd.Flags().StringVar(&deleteData, "delete-data", "never", "when to destroy data on a migration: always|on-conflict|never")
+	cmd.Flags().BoolVar(&breakClients, "break-clients", false, "allow a migration that breaks existing clients (e.g. a new default= column)")
+	cmd.Flags().UintVar(&numReplicas, "num-replicas", 0, "number of replicas the database should have (0 = server default)")
+	cmd.Flags().StringVar(&parent, "parent", "", "parent database (name or identity); only applied when creating a database")
+	cmd.Flags().StringVar(&organization, "organization", "", "organization (name or identity); only applied when creating a database")
+	cmd.Flags().StringVar(&organization, "org", "", "alias for --organization")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip build step (requires --wasm-file)")
-	cmd.Flags().BoolVarP(&autoConfirm, "yes", "y", false, "auto-confirm breaking changes")
+	cmd.Flags().BoolVarP(&autoConfirm, "yes", "y", false, "auto-confirm breaking changes and migrations")
 	cmd.Flags().BoolVar(&wasiShim, "wasi-shim", true, "rewrite WASI imports with local stubs")
 
 	return cmd
 }
 
-func runPublish(dir, database, server, token, wasmFile string, clearDatabase, skipBuild, autoConfirm, wasiShim bool) error {
-	absDir, err := filepath.Abs(dir)
+// publishArgs bundles the resolved CLI flags for a publish run.
+type publishArgs struct {
+	dir           string
+	database      string
+	server        string
+	token         string
+	wasmFile      string
+	clearDatabase bool
+	deleteData    string
+	breakClients  bool
+	numReplicas   uint
+	parent        string
+	organization  string
+	skipBuild     bool
+	autoConfirm   bool
+	wasiShim      bool
+}
+
+func runPublish(a publishArgs) error {
+	absDir, err := filepath.Abs(a.dir)
 	if err != nil {
 		return fmt.Errorf("publish: %w", err)
+	}
+
+	// Resolve the data-deletion mode (--clear-database is an alias for always).
+	clearMode := a.deleteData
+	if a.clearDatabase {
+		clearMode = clearModeAlways
+	}
+	switch clearMode {
+	case clearModeAlways, clearModeOnConflict, clearModeNever:
+	default:
+		return fmt.Errorf("publish: invalid --delete-data %q (want always|on-conflict|never)", a.deleteData)
 	}
 
 	// Load configs
@@ -77,28 +135,32 @@ func runPublish(dir, database, server, token, wasmFile string, clearDatabase, sk
 	}
 
 	// Resolve settings
-	resolvedDB := publish.ResolveDatabase(database, spacetimeCfg)
+	resolvedDB := publish.ResolveDatabase(a.database, spacetimeCfg)
 	if resolvedDB == "" {
 		return fmt.Errorf("publish: database name is required (use --database flag or spacetime.json)")
 	}
 
-	resolvedServer := publish.ResolveServer(server, spacetimeCfg, cliCfg)
-	resolvedToken := publish.ResolveToken(token, cliCfg)
-
+	resolvedServer := publish.ResolveServer(a.server, spacetimeCfg, cliCfg)
 	fmt.Fprintf(os.Stderr, "publish: database=%s server=%s\n", resolvedDB, resolvedServer)
 
+	ctx := cmd_context()
+	resolvedToken, err := resolveOrCreateToken(ctx, resolvedServer, a.token, cliCfg)
+	if err != nil {
+		return err
+	}
+
 	// Determine WASM file path
-	wasmPath := wasmFile
+	wasmPath := a.wasmFile
 	if wasmPath == "" {
 		wasmPath = filepath.Join(absDir, "module.wasm")
 	}
 
 	// Build unless skipped
-	if !skipBuild {
-		if err := runBuild(absDir, wasmPath, true, true, wasiShim); err != nil {
+	if !a.skipBuild {
+		if err := runBuild(absDir, wasmPath, true, true, a.wasiShim); err != nil {
 			return fmt.Errorf("publish: %w", err)
 		}
-	} else if wasmFile == "" {
+	} else if a.wasmFile == "" {
 		return fmt.Errorf("publish: --skip-build requires --wasm-file")
 	}
 
@@ -115,42 +177,31 @@ func runPublish(dir, database, server, token, wasmFile string, clearDatabase, sk
 		WithServer(resolvedServer).
 		WithDatabase(resolvedDB).
 		WithToken(resolvedToken).
-		WithClearDatabase(clearDatabase).
-		WithAutoConfirm(autoConfirm).
 		Build()
 	if err != nil {
 		return fmt.Errorf("publish: %w", err)
 	}
 
-	ctx := cmd_context()
-
-	// Pre-publish check
-	fmt.Fprintf(os.Stderr, "publish: checking for migrations...\n")
-	preResult, err := pub.PrePublish(ctx, wasmBytes)
-	if err != nil {
-		return fmt.Errorf("publish: pre-publish check failed: %w", err)
+	// Resolve per-publish options (migration policy, data deletion, creation params).
+	opts := publish.PublishOptions{
+		Parent:       a.parent,
+		Organization: a.organization,
+	}
+	if a.numReplicas > 0 {
+		n := a.numReplicas
+		opts.NumReplicas = &n
 	}
 
-	if preResult != nil {
-		if preResult.ManualMigrate != nil {
-			mm := preResult.ManualMigrate
-			fmt.Fprintf(os.Stderr, "publish: manual migration required:\n")
-			fmt.Fprintf(os.Stderr, "  %s\n", mm.Summary)
-			for _, detail := range mm.Details {
-				fmt.Fprintf(os.Stderr, "  - %s\n", detail)
-			}
-			if mm.HasErrors && !autoConfirm {
-				return fmt.Errorf("publish: breaking changes detected; use --yes to confirm or --clear-database to start fresh")
-			}
-		}
-		if preResult.AutoMigrate != nil {
-			fmt.Fprintf(os.Stderr, "publish: auto-migration plan:\n%s\n", preResult.AutoMigrate.MigrationPlan)
-		}
+	if clearMode == clearModeAlways {
+		// Wiping data sidesteps the migration check entirely.
+		opts.Clear = true
+	} else if err := resolveMigration(ctx, pub, wasmBytes, clearMode, a.breakClients, a.autoConfirm, &opts); err != nil {
+		return err
 	}
 
 	// Publish
 	fmt.Fprintf(os.Stderr, "publish: publishing module...\n")
-	result, err := pub.Publish(ctx, wasmBytes)
+	result, err := pub.Publish(ctx, wasmBytes, opts)
 	if err != nil {
 		return fmt.Errorf("publish: %w", err)
 	}
@@ -171,6 +222,84 @@ func runPublish(dir, database, server, token, wasmFile string, clearDatabase, sk
 		}
 	}
 
+	return nil
+}
+
+// resolveOrCreateToken returns the auth token, minting and persisting a new one
+// when none is configured. This makes publishing zero-setup: the first run on a
+// fresh machine creates an identity on the target server and saves its token to
+// cli.toml, and subsequent runs reuse it (so the same identity owns the database).
+func resolveOrCreateToken(ctx context.Context, server, flagToken string, cliCfg *publish.CLIConfig) (string, error) {
+	if tok := publish.ResolveToken(flagToken, cliCfg); tok != "" {
+		return tok, nil
+	}
+
+	fmt.Fprintf(os.Stderr, "publish: no auth token found; creating a new identity on %s\n", server)
+	identity, token, err := publish.CreateIdentity(ctx, server)
+	if err != nil {
+		return "", fmt.Errorf("publish: creating identity: %w", err)
+	}
+	path, err := publish.SaveSpacetimeToken(token)
+	if err != nil {
+		return "", fmt.Errorf("publish: saving token: %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "publish: saved token for identity %s to %s\n", identity, path)
+	return token, nil
+}
+
+// Data-deletion modes for --delete-data (and the --clear-database alias).
+const (
+	clearModeAlways     = "always"
+	clearModeOnConflict = "on-conflict"
+	clearModeNever      = "never"
+)
+
+// resolveMigration runs the pre-publish check and decides how to proceed,
+// updating opts (clear / break-clients policy + token) or returning an error
+// that aborts the publish. It mirrors the official CLI's
+// apply_pre_publish_if_needed. clearMode is never "always" here (that case skips
+// the check entirely).
+func resolveMigration(ctx context.Context, pub publish.Publisher, wasmBytes []byte, clearMode string, breakClients, autoConfirm bool, opts *publish.PublishOptions) error {
+	fmt.Fprintf(os.Stderr, "publish: checking for breaking changes...\n")
+	pre, err := pub.PrePublish(ctx, wasmBytes)
+	if err != nil {
+		return fmt.Errorf("publish: pre-publish check failed: %w", err)
+	}
+	if pre == nil {
+		// New database (404): nothing to migrate.
+		return nil
+	}
+
+	switch {
+	case pre.ManualMigrate != nil:
+		mm := pre.ManualMigrate
+		fmt.Fprintf(os.Stderr, "publish: %s\n", mm.Reason)
+		if mm.MajorVersionUpgrade && !autoConfirm {
+			return fmt.Errorf("publish: this is a major version upgrade; re-run with --yes to confirm")
+		}
+		if clearMode == clearModeNever {
+			return fmt.Errorf("publish: this change requires manual migration; existing data must be deleted. " +
+				"Re-run with --delete-data=on-conflict (or --clear-database) to wipe and republish")
+		}
+		fmt.Fprintf(os.Stderr, "publish: clearing data due to --delete-data=on-conflict\n")
+		opts.Clear = true
+
+	case pre.AutoMigrate != nil:
+		am := pre.AutoMigrate
+		if am.MigratePlan != "" {
+			fmt.Fprintf(os.Stderr, "%s\n", am.MigratePlan)
+		}
+		if am.MajorVersionUpgrade && !autoConfirm {
+			return fmt.Errorf("publish: this is a major version upgrade; re-run with --yes to confirm")
+		}
+		if am.BreakClients {
+			if !breakClients && !autoConfirm {
+				return fmt.Errorf("publish: these changes will BREAK existing clients; re-run with --break-clients to proceed")
+			}
+			opts.Policy = "BreakClients"
+			opts.MigrationToken = am.QueryToken()
+		}
+	}
 	return nil
 }
 

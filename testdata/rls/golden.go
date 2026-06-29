@@ -98,6 +98,11 @@ func (t *stdbSecretTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbSecretTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbSecretTableHandle) FindById(key uint64) (Secret, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("secret_id_idx_btree")

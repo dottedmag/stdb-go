@@ -148,6 +148,11 @@ func (t *stdbAllPrimitivesTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbAllPrimitivesTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbAllPrimitivesTableHandle) FindById(key uint64) (AllPrimitives, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("all_primitives_id_idx_btree")

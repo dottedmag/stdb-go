@@ -98,6 +98,11 @@ func (t *stdbGameEventTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbGameEventTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func stdbCallReducer(id uint32, ctx reducer.ReducerContext, args []byte) error {
 	switch id {
 	default:

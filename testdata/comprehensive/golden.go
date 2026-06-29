@@ -192,6 +192,11 @@ func (t *stdbPlayerTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbPlayerTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbPlayerTableHandle) FindById(key uint64) (Player, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("player_id_idx_btree")
@@ -379,6 +384,11 @@ func (t *stdbGameLogTableHandle) Scan() (runtime.TableIterator[GameLog], error) 
 func (t *stdbGameLogTableHandle) Count() (uint64, error) {
 	t.resolve()
 	return sys.DatastoreTableRowCount(t.tableId)
+}
+
+func (t *stdbGameLogTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
 }
 
 func stdbCallReducer(id uint32, ctx reducer.ReducerContext, args []byte) error {

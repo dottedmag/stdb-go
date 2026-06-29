@@ -49,6 +49,9 @@ func generateTableType(module *AnalyzedModule, table *AnalyzedTable, w *strings.
 	// Count method.
 	generateCount(table, typeName, structName, w)
 
+	// Clear method.
+	generateClear(table, typeName, structName, w)
+
 	// Generate index-based methods for fields with indexes.
 	for _, f := range table.Fields {
 		if f.PrimaryKey || f.Unique {
@@ -159,6 +162,14 @@ func generateCount(table *AnalyzedTable, typeName, structName string, w *strings
 	fmt.Fprintf(w, "func (t *%s) Count() (uint64, error) {\n", typeName)
 	fmt.Fprintf(w, "\tt.resolve()\n")
 	fmt.Fprintf(w, "\treturn sys.DatastoreTableRowCount(t.tableId)\n")
+	fmt.Fprintf(w, "}\n\n")
+}
+
+// generateClear generates the Clear method, which truncates the table.
+func generateClear(table *AnalyzedTable, typeName, structName string, w *strings.Builder) {
+	fmt.Fprintf(w, "func (t *%s) Clear() (uint64, error) {\n", typeName)
+	fmt.Fprintf(w, "\tt.resolve()\n")
+	fmt.Fprintf(w, "\treturn sys.DatastoreClear(t.tableId)\n")
 	fmt.Fprintf(w, "}\n\n")
 }
 

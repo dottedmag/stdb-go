@@ -104,6 +104,11 @@ func (t *stdbPersonTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbPersonTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbPersonTableHandle) FindById(key uint64) (Person, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("person_id_idx_btree")

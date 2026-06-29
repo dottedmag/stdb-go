@@ -106,6 +106,11 @@ func (t *stdbIndexedTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbIndexedTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbIndexedTableHandle) FindById(key uint64) (Indexed, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("indexed_id_idx_btree")

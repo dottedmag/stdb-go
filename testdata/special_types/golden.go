@@ -165,6 +165,11 @@ func (t *stdbSpecialTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbSpecialTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbSpecialTableHandle) FindById(key uint64) (Special, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("special_id_idx_btree")

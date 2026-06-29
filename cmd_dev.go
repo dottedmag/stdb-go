@@ -68,7 +68,10 @@ to get a live-reload development workflow.`,
 			}
 
 			resolvedServer := publish.ResolveServer(server, spacetimeCfg, cliCfg)
-			resolvedToken := publish.ResolveToken(token, cliCfg)
+			resolvedToken, err := resolveOrCreateToken(cmd.Context(), resolvedServer, token, cliCfg)
+			if err != nil {
+				return err
+			}
 
 			fmt.Fprintf(os.Stderr, "dev: database=%s server=%s\n", resolvedDB, resolvedServer)
 
@@ -85,7 +88,20 @@ to get a live-reload development workflow.`,
 				WithWasiShim(wasiShim).
 				WithClientCmd(clientCmd).
 				WithBuildFunc(runBuild).
-				WithPublishFunc(runPublish).
+				WithPublishFunc(func(d, db, s, tok, wasm string, clear, skip, auto, shim bool) error {
+					return runPublish(publishArgs{
+						dir:           d,
+						database:      db,
+						server:        s,
+						token:         tok,
+						wasmFile:      wasm,
+						clearDatabase: clear,
+						deleteData:    clearModeNever,
+						skipBuild:     skip,
+						autoConfirm:   auto,
+						wasiShim:      shim,
+					})
+				}).
 				Build()
 			if err != nil {
 				return err

@@ -210,6 +210,11 @@ func (t *stdbWidgetTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbWidgetTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbWidgetTableHandle) FindById(key uint64) (Widget, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("widget_id_idx_btree")

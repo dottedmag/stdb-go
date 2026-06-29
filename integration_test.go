@@ -67,11 +67,31 @@ func testdataRoot() string {
 	return filepath.Join(".", "testdata", "integration", "module")
 }
 
+// refreshModuleSDKs upgrades the integration module's SpacetimeDB client and
+// server SDK dependencies to their latest published versions. The integration
+// test deliberately tracks the newest SDKs rather than a pinned snapshot, so it
+// catches ABI drift (e.g. newly added host functions) as soon as it ships.
+func refreshModuleSDKs(t *testing.T, moduleDir string) {
+	t.Helper()
+
+	cmd := exec.Command("go", "get",
+		"go.digitalxero.dev/spacetimedb-client@latest",
+		"go.digitalxero.dev/spacetimedb-server@latest",
+	)
+	cmd.Dir = moduleDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	require.NoError(t, cmd.Run(), "failed to update module SDKs to latest")
+}
+
 func buildWASMModule(t *testing.T) []byte {
 	t.Helper()
 
 	moduleDir, err := filepath.Abs(testdataRoot())
 	require.NoError(t, err)
+
+	// Always build against the latest published SDKs.
+	refreshModuleSDKs(t, moduleDir)
 
 	// Build stdb-go binary from source.
 	stdbGoBinary := buildStdbGo(t)
@@ -111,14 +131,13 @@ func TestIntegration(t *testing.T) {
 		pub, err := publish.NewPublisherBuilder().
 			WithServer(serverURL).
 			WithDatabase(dbName).
-			WithClearDatabase(true).
 			Build()
 		require.NoError(t, err)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		result, err := pub.Publish(ctx, wasmBytes)
+		result, err := pub.Publish(ctx, wasmBytes, publish.PublishOptions{Clear: true})
 		require.NoError(t, err, "publish failed")
 		require.NotNil(t, result, "publish returned nil result")
 		require.Nil(t, result.PermissionDenied, "publish permission denied")
@@ -150,6 +169,9 @@ func TestIntegration(t *testing.T) {
 func TestBuildDeterminism(t *testing.T) {
 	moduleDir, err := filepath.Abs(testdataRoot())
 	require.NoError(t, err)
+
+	// Always build against the latest published SDKs.
+	refreshModuleSDKs(t, moduleDir)
 
 	stdbGoBinary := buildStdbGo(t)
 	wasmOutput := filepath.Join(t.TempDir(), "module.wasm")

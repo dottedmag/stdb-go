@@ -151,6 +151,11 @@ func (t *stdbOptionalDataTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbOptionalDataTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbOptionalDataTableHandle) FindById(key uint64) (OptionalData, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("optional_data_id_idx_btree")

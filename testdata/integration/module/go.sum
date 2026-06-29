@@ -4,9 +4,9 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-go.digitalxero.dev/spacetimedb-client v0.2.0 h1:zvGBDWKXG5klWppXGNlsY+hFGRgos1cwoFiqm1i7V/o=
-go.digitalxero.dev/spacetimedb-client v0.2.0/go.mod h1:Pkj7ryZhs2tnHdQCaZLqJDRPMT6xpyXh4QVdw8mPfMY=
-go.digitalxero.dev/spacetimedb-server v0.2.0 h1:O0+Bc6JW3GUEF2k/3Oy9pejRBuGJASUxQTpbD1592/4=
-go.digitalxero.dev/spacetimedb-server v0.2.0/go.mod h1:a7vkQiA+h/QwoDoIkleB4iGYwdzFC8cjwS6iEYb76qY=
+go.digitalxero.dev/spacetimedb-client v0.6.0 h1:70haMEeMga5BBU6wLxIVSohSi/9IH9cJxh3C6D47sD4=
+go.digitalxero.dev/spacetimedb-client v0.6.0/go.mod h1:Pkj7ryZhs2tnHdQCaZLqJDRPMT6xpyXh4QVdw8mPfMY=
+go.digitalxero.dev/spacetimedb-server v0.5.0 h1:QB2rDH5XkBgiwYTNjuQaTgQ7cOXpyoYvtKncVcaVPfU=
+go.digitalxero.dev/spacetimedb-server v0.5.0/go.mod h1:a7vkQiA+h/QwoDoIkleB4iGYwdzFC8cjwS6iEYb76qY=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

@@ -100,6 +100,19 @@ func buildAndGetWASMModule() ([]byte, error) {
 		return nil, fmt.Errorf("resolving module dir: %w", err)
 	}
 
+	// Always build against the latest published SDKs rather than a pinned
+	// snapshot, so the integration test catches ABI drift as soon as it ships.
+	getCmd := exec.Command("go", "get",
+		"go.digitalxero.dev/spacetimedb-client@latest",
+		"go.digitalxero.dev/spacetimedb-server@latest",
+	)
+	getCmd.Dir = moduleDir
+	getCmd.Stdout = os.Stdout
+	getCmd.Stderr = os.Stderr
+	if err := getCmd.Run(); err != nil {
+		return nil, fmt.Errorf("updating module SDKs to latest: %w", err)
+	}
+
 	wasiShim := envOrDefault("WASI_SHIM", "true")
 	wasmOutput := filepath.Join(tmpDir, "module.wasm")
 	cmd = exec.Command(binary, "build",
@@ -130,7 +143,6 @@ func publishModule(serverURL, dbName string, wasmBytes []byte) error {
 	pub, err := publish.NewPublisherBuilder().
 		WithServer(serverURL).
 		WithDatabase(dbName).
-		WithClearDatabase(true).
 		Build()
 	if err != nil {
 		return fmt.Errorf("building publisher: %w", err)
@@ -139,7 +151,7 @@ func publishModule(serverURL, dbName string, wasmBytes []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	result, err := pub.Publish(ctx, wasmBytes)
+	result, err := pub.Publish(ctx, wasmBytes, publish.PublishOptions{Clear: true})
 	if err != nil {
 		return fmt.Errorf("publish failed: %w", err)
 	}

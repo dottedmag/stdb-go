@@ -134,6 +134,11 @@ func (t *stdbEntityTableHandle) Count() (uint64, error) {
 	return sys.DatastoreTableRowCount(t.tableId)
 }
 
+func (t *stdbEntityTableHandle) Clear() (uint64, error) {
+	t.resolve()
+	return sys.DatastoreClear(t.tableId)
+}
+
 func (t *stdbEntityTableHandle) FindById(key uint64) (Entity, bool, error) {
 	t.resolve()
 	indexId, err := runtime.GetIndexId("entity_id_idx_btree")

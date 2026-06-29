@@ -1,5 +1,10 @@
 package publish
 
+import (
+	"encoding/json"
+	"strings"
+)
+
 // PublishResult represents the JSON response from the publish API.
 type PublishResult struct {
 	Success          *PublishSuccess   `json:"Success,omitempty"`
@@ -19,21 +24,43 @@ type PermissionDenied struct {
 }
 
 // PrePublishResult represents the JSON response from the pre-publish check.
+// It is an externally-tagged enum: exactly one of the fields is set.
 type PrePublishResult struct {
 	AutoMigrate   *AutoMigrateResult   `json:"AutoMigrate,omitempty"`
 	ManualMigrate *ManualMigrateResult `json:"ManualMigrate,omitempty"`
 }
 
-// AutoMigrateResult indicates the module can be auto-migrated.
+// AutoMigrateResult indicates the module change can be auto-migrated in place.
+// When BreakClients is true the migration alters the client-visible schema, so
+// the server requires it to be approved with policy=BreakClients and the Token
+// echoed back on the publish request.
 type AutoMigrateResult struct {
-	MigrationPlan string `json:"migration_plan"`
+	MigratePlan         string          `json:"migrate_plan"`
+	BreakClients        bool            `json:"break_clients"`
+	Token               json.RawMessage `json:"token"` // opaque hash; echoed verbatim as token=
+	MajorVersionUpgrade bool            `json:"major_version_upgrade"`
 }
 
-// ManualMigrateResult indicates the module requires manual migration.
+// QueryToken renders the opaque migration token as the value to pass back in the
+// publish request's `token=` query parameter. The server serializes the token
+// through the SATS serde bridge (a JSON string or number); either form is
+// reduced to its underlying text here.
+func (a *AutoMigrateResult) QueryToken() string {
+	if len(a.Token) == 0 {
+		return ""
+	}
+	var s string
+	if err := json.Unmarshal(a.Token, &s); err == nil {
+		return s
+	}
+	return strings.TrimSpace(string(a.Token))
+}
+
+// ManualMigrateResult indicates the module change cannot be auto-migrated; the
+// only way forward is to clear the database's data.
 type ManualMigrateResult struct {
-	Summary   string   `json:"summary"`
-	Details   []string `json:"details"`
-	HasErrors bool     `json:"has_errors"`
+	Reason              string `json:"reason"`
+	MajorVersionUpgrade bool   `json:"major_version_upgrade"`
 }
 
 // SpacetimeConfig represents the spacetime.json project config file.

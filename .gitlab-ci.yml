@@ -15,7 +15,7 @@ variables:
   # Binary settings
   BINARY_NAME: stdb-go
   # SpacetimeDB configuration
-  SPACETIMEDB_VERSION: "v2.0.5"
+  SPACETIMEDB_VERSION: "v2.6.0"
 
 
 # Cache configuration for Go modules
