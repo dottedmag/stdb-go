@@ -1,7 +1,27 @@
-- semver: 0.5.0
-  date: 2026-06-29T10:15:21.403108774Z
+- semver: 0.6.0
+  date: 2026-07-10T01:45:56.772571364Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: cbc1380121ea9442a67e33ff5a15f98c2f29176e
+      note: 'feat: add nested directory parsing'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.5.0
+  date: 2026-06-29T10:15:21Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: 7eaeed609b10274e34c2a864005f2e7cfbd6bf83
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: 28c8f430b81af3ae5e1639f69ad7f41695d20a97
       note: 'feat: update cli flags for newer stdb versions'
       author:

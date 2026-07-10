@@ -1,8 +1,15 @@
 
+0.6.0
+=============
+2026-07-10
+
+* feat: add nested directory parsing (cbc13801)
+
 0.5.0
 =============
 2026-06-29
 
+* chore: update changelog (7eaeed60)
 * feat: update cli flags for newer stdb versions (28c8f430)
 
 0.4.7
