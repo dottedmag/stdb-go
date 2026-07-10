@@ -1,7 +1,27 @@
-- semver: 0.6.0
-  date: 2026-07-10T01:45:56.772571364Z
+- semver: 0.7.0
+  date: 2026-07-10T08:39:53.621959032Z
   packager: Dj Gilcrease <digitalxero@gmail.com>
   changes:
+    - commit: d31fc0c9bda24adfe2fbecc55b6e2620c22a760c
+      note: 'feat: add skills command to install AI agent skills'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+- semver: 0.6.0
+  date: 2026-07-10T01:45:56Z
+  packager: Dj Gilcrease <digitalxero@gmail.com>
+  changes:
+    - commit: 9c8fd51d4bbcf1b8fceed727878e682a10dc5cb5
+      note: 'chore: update changelog'
+      author:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
+      committer:
+        name: Dj Gilcrease
+        email: digitalxero@gmail.com
     - commit: cbc1380121ea9442a67e33ff5a15f98c2f29176e
       note: 'feat: add nested directory parsing'
       author:

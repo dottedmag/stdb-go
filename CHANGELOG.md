@@ -1,8 +1,15 @@
 
+0.7.0
+=============
+2026-07-10
+
+* feat: add skills command to install AI agent skills (d31fc0c9)
+
 0.6.0
 =============
 2026-07-10
 
+* chore: update changelog (9c8fd51d)
 * feat: add nested directory parsing (cbc13801)
 
 0.5.0
