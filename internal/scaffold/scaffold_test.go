@@ -103,7 +103,9 @@ func TestGenerate_Server(t *testing.T) {
 	mainGo, err := os.ReadFile(filepath.Join(outDir, "main.go"))
 	require.NoError(t, err)
 	assert.Contains(t, string(mainGo), "go:generate go run go.digitalxero.dev/stdb-go")
-	assert.Contains(t, string(mainGo), "//stdb:init")
+	// The directive parser skips main.go entirely, so directives there would
+	// be silently ignored — the init hook must live in a parsed file instead.
+	assert.NotContains(t, string(mainGo), "//stdb:")
 
 	// Check types.go contents
 	typesGo, err := os.ReadFile(filepath.Join(outDir, "types.go"))
@@ -114,6 +116,8 @@ func TestGenerate_Server(t *testing.T) {
 	// Check reducers.go contents
 	reducersGo, err := os.ReadFile(filepath.Join(outDir, "reducers.go"))
 	require.NoError(t, err)
+	assert.Contains(t, string(reducersGo), "//stdb:init")
+	assert.Contains(t, string(reducersGo), "func Init")
 	assert.Contains(t, string(reducersGo), "//stdb:reducer")
 	assert.Contains(t, string(reducersGo), "func CreateUser")
 }

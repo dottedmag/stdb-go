@@ -108,6 +108,9 @@ func generateMultiPackage(module *AnalyzedModule) ([]GeneratedFile, error) {
 		dirs[d] = true
 	}
 
+	// When the root package also gets a tables file, it already defines
+	// stdbStrPtr in package main — the module file must not redeclare it.
+	rootHasTablesFile := false
 	for relDir := range dirs {
 		pkgName := module.PackageName
 		if relDir != "" {
@@ -132,6 +135,9 @@ func generateMultiPackage(module *AnalyzedModule) ([]GeneratedFile, error) {
 		if code == nil {
 			continue
 		}
+		if relDir == "" {
+			rootHasTablesFile = true
+		}
 		// Multi-package: tables file is always stdb_tables_generated.go
 		// (module dispatch lives in root stdb_module_generated.go).
 		relPath := "stdb_tables_generated.go"
@@ -142,7 +148,7 @@ func generateMultiPackage(module *AnalyzedModule) ([]GeneratedFile, error) {
 	}
 
 	// Root module file: dispatch + moduledef + init.
-	modCode, err := generateModulePackage(module)
+	modCode, err := generateModulePackage(module, rootHasTablesFile)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +190,9 @@ func generateTablesPackage(module *AnalyzedModule, pkgName, relDir string, table
 }
 
 // generateModulePackage emits root dispatch + moduledef + init.
-func generateModulePackage(module *AnalyzedModule) ([]byte, error) {
+// When rootHasTablesFile is true, stdbStrPtr already lives in the root
+// stdb_tables_generated.go (same package) and must not be redeclared here.
+func generateModulePackage(module *AnalyzedModule, rootHasTablesFile bool) ([]byte, error) {
 	var w strings.Builder
 	w.WriteString(fileHeader(module.PackageName))
 	imports := collectImports(module, false /*module file needs reducer import + feature pkgs*/)
@@ -211,8 +219,11 @@ func generateModulePackage(module *AnalyzedModule) ([]byte, error) {
 	w.WriteString(importBlock(imports))
 	writeImportKeepalivesModule(&w)
 
-	// Module file may need stdbStrPtr for defaults in moduledef? moduledef uses it.
-	w.WriteString("func stdbStrPtr(s string) *string { return &s }\n\n")
+	// moduledef uses stdbStrPtr for index names. Emit it only when the root
+	// package does not already define it in stdb_tables_generated.go.
+	if !rootHasTablesFile {
+		w.WriteString("func stdbStrPtr(s string) *string { return &s }\n\n")
+	}
 
 	// Custom struct params are decoded via exported schema.StdbReadX codecs.
 

@@ -2,6 +2,6 @@ package main
 
 //stdb:table name={{.TableName}} access=public
 type {{.TypeName}} struct {
-	Id   uint64 `+"`"+`stdb:"primarykey,autoinc"`+"`"+`
+	Id   uint64 `stdb:"primarykey,autoinc"`
 	Name string
 }
