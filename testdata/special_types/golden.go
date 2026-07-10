@@ -25,7 +25,7 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteSpecial(w bsatn.Writer, v *Special) {
+func StdbWriteSpecial(w bsatn.Writer, v *Special) {
 	w.PutU64(v.Id)
 	{
 		b := v.Owner.Bytes()
@@ -51,7 +51,7 @@ func stdbWriteSpecial(w bsatn.Writer, v *Special) {
 	}
 }
 
-func stdbReadSpecial(r bsatn.Reader, v *Special) error {
+func StdbReadSpecial(r bsatn.Reader, v *Special) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -130,7 +130,7 @@ func (t *stdbSpecialTableHandle) resolve() {
 func (t *stdbSpecialTableHandle) Insert(row Special) Special {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteSpecial(runtime.GlobalWriter, &row)
+	StdbWriteSpecial(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("SpecialTable.Insert: %v", err))
@@ -143,7 +143,7 @@ func (t *stdbSpecialTableHandle) Delete(row Special) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteSpecial(runtime.GlobalWriter, &row)
+	StdbWriteSpecial(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("SpecialTable.Delete: %v", err))
 	}
@@ -156,7 +156,7 @@ func (t *stdbSpecialTableHandle) Scan() (runtime.TableIterator[Special], error) 
 		return nil, err
 	}
 	return runtime.NewTableIterator[Special](iter, func(r bsatn.Reader, v *Special) error {
-		return stdbReadSpecial(r, v)
+		return StdbReadSpecial(r, v)
 	}), nil
 }
 
@@ -192,7 +192,7 @@ func (t *stdbSpecialTableHandle) FindById(key uint64) (Special, bool, error) {
 	}
 	var result Special
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadSpecial(r, &result); err != nil {
+	if err := StdbReadSpecial(r, &result); err != nil {
 		var zero Special
 		return zero, false, err
 	}
@@ -206,7 +206,7 @@ func (t *stdbSpecialTableHandle) UpdateById(row Special) Special {
 		panic(fmt.Sprintf("SpecialTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteSpecial(runtime.GlobalWriter, &row)
+	StdbWriteSpecial(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("SpecialTable.UpdateById: %v", err))

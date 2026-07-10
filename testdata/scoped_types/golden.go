@@ -25,11 +25,11 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteActionType(w bsatn.Writer, v *ActionType) {
+func StdbWriteActionType(w bsatn.Writer, v *ActionType) {
 	w.PutU8(uint8(*v))
 }
 
-func stdbReadActionType(r bsatn.Reader, v *ActionType) error {
+func StdbReadActionType(r bsatn.Reader, v *ActionType) error {
 	tag, err := r.GetU8()
 	if err != nil {
 		return fmt.Errorf("decode ActionType: %w", err)
@@ -41,7 +41,7 @@ func stdbReadActionType(r bsatn.Reader, v *ActionType) error {
 	return nil
 }
 
-func stdbWriteEffect(w bsatn.Writer, v *Effect) {
+func StdbWriteEffect(w bsatn.Writer, v *Effect) {
 	switch val := (*v).(type) {
 	case EffectDamage:
 		w.PutSumTag(0)
@@ -51,11 +51,11 @@ func stdbWriteEffect(w bsatn.Writer, v *Effect) {
 		w.PutI64(val.Duration)
 		w.PutF32(val.Power)
 	default:
-		panic(fmt.Sprintf("stdbWriteEffect: unknown variant %T", *v))
+		panic(fmt.Sprintf("StdbWriteEffect: unknown variant %T", *v))
 	}
 }
 
-func stdbReadEffect(r bsatn.Reader, v *Effect) error {
+func StdbReadEffect(r bsatn.Reader, v *Effect) error {
 	var err error
 	var tag uint8
 	if tag, err = r.GetU8(); err != nil {

@@ -25,11 +25,11 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteStatus(w bsatn.Writer, v *Status) {
+func StdbWriteStatus(w bsatn.Writer, v *Status) {
 	w.PutU8(uint8(*v))
 }
 
-func stdbReadStatus(r bsatn.Reader, v *Status) error {
+func StdbReadStatus(r bsatn.Reader, v *Status) error {
 	tag, err := r.GetU8()
 	if err != nil {
 		return fmt.Errorf("decode Status: %w", err)
@@ -41,15 +41,15 @@ func stdbReadStatus(r bsatn.Reader, v *Status) error {
 	return nil
 }
 
-func stdbWritePlayer(w bsatn.Writer, v *Player) {
+func StdbWritePlayer(w bsatn.Writer, v *Player) {
 	w.PutU64(v.Id)
 	w.PutString(v.Name)
 	{
 		b := v.Owner.Bytes()
 		w.PutBytes(b[:])
 	}
-	stdbWritePosition(w, &v.Position)
-	stdbWriteStatus(w, &v.Status)
+	StdbWritePosition(w, &v.Position)
+	StdbWriteStatus(w, &v.Status)
 	if v.Score != nil {
 		w.PutSumTag(0) // Some
 		w.PutU64((*v.Score))
@@ -58,7 +58,7 @@ func stdbWritePlayer(w bsatn.Writer, v *Player) {
 	}
 }
 
-func stdbReadPlayer(r bsatn.Reader, v *Player) error {
+func StdbReadPlayer(r bsatn.Reader, v *Player) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -73,10 +73,10 @@ func stdbReadPlayer(r bsatn.Reader, v *Player) error {
 		}
 		v.Owner = tmp
 	}
-	if err = stdbReadPosition(r, &v.Position); err != nil {
+	if err = StdbReadPosition(r, &v.Position); err != nil {
 		return fmt.Errorf("decode Position: %w", err)
 	}
-	if err = stdbReadStatus(r, &v.Status); err != nil {
+	if err = StdbReadStatus(r, &v.Status); err != nil {
 		return fmt.Errorf("decode Status: %w", err)
 	}
 	{
@@ -97,12 +97,12 @@ func stdbReadPlayer(r bsatn.Reader, v *Player) error {
 	return nil
 }
 
-func stdbWritePosition(w bsatn.Writer, v *Position) {
+func StdbWritePosition(w bsatn.Writer, v *Position) {
 	w.PutF64(v.X)
 	w.PutF64(v.Y)
 }
 
-func stdbReadPosition(r bsatn.Reader, v *Position) error {
+func StdbReadPosition(r bsatn.Reader, v *Position) error {
 	var err error
 	if v.X, err = r.GetF64(); err != nil {
 		return fmt.Errorf("decode X: %w", err)
@@ -113,12 +113,12 @@ func stdbReadPosition(r bsatn.Reader, v *Position) error {
 	return nil
 }
 
-func stdbWriteGameLog(w bsatn.Writer, v *GameLog) {
+func StdbWriteGameLog(w bsatn.Writer, v *GameLog) {
 	w.PutString(v.Message)
 	w.PutU8(v.Level)
 }
 
-func stdbReadGameLog(r bsatn.Reader, v *GameLog) error {
+func StdbReadGameLog(r bsatn.Reader, v *GameLog) error {
 	var err error
 	if v.Message, err = r.GetString(); err != nil {
 		return fmt.Errorf("decode Message: %w", err)
@@ -151,7 +151,7 @@ func (t *stdbPlayerTableHandle) resolve() {
 func (t *stdbPlayerTableHandle) Insert(row Player) Player {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWritePlayer(runtime.GlobalWriter, &row)
+	StdbWritePlayer(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("PlayerTable.Insert: %v", err))
@@ -170,7 +170,7 @@ func (t *stdbPlayerTableHandle) Delete(row Player) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWritePlayer(runtime.GlobalWriter, &row)
+	StdbWritePlayer(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("PlayerTable.Delete: %v", err))
 	}
@@ -183,7 +183,7 @@ func (t *stdbPlayerTableHandle) Scan() (runtime.TableIterator[Player], error) {
 		return nil, err
 	}
 	return runtime.NewTableIterator[Player](iter, func(r bsatn.Reader, v *Player) error {
-		return stdbReadPlayer(r, v)
+		return StdbReadPlayer(r, v)
 	}), nil
 }
 
@@ -219,7 +219,7 @@ func (t *stdbPlayerTableHandle) FindById(key uint64) (Player, bool, error) {
 	}
 	var result Player
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadPlayer(r, &result); err != nil {
+	if err := StdbReadPlayer(r, &result); err != nil {
 		var zero Player
 		return zero, false, err
 	}
@@ -233,7 +233,7 @@ func (t *stdbPlayerTableHandle) UpdateById(row Player) Player {
 		panic(fmt.Sprintf("PlayerTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWritePlayer(runtime.GlobalWriter, &row)
+	StdbWritePlayer(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("PlayerTable.UpdateById: %v", err))
@@ -285,7 +285,7 @@ func (t *stdbPlayerTableHandle) FindByName(key string) (Player, bool, error) {
 	}
 	var result Player
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadPlayer(r, &result); err != nil {
+	if err := StdbReadPlayer(r, &result); err != nil {
 		var zero Player
 		return zero, false, err
 	}
@@ -299,7 +299,7 @@ func (t *stdbPlayerTableHandle) UpdateByName(row Player) Player {
 		panic(fmt.Sprintf("PlayerTable.UpdateByName: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWritePlayer(runtime.GlobalWriter, &row)
+	StdbWritePlayer(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("PlayerTable.UpdateByName: %v", err))
@@ -351,7 +351,7 @@ func (t *stdbGameLogTableHandle) resolve() {
 func (t *stdbGameLogTableHandle) Insert(row GameLog) GameLog {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteGameLog(runtime.GlobalWriter, &row)
+	StdbWriteGameLog(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("GameLogTable.Insert: %v", err))
@@ -364,7 +364,7 @@ func (t *stdbGameLogTableHandle) Delete(row GameLog) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteGameLog(runtime.GlobalWriter, &row)
+	StdbWriteGameLog(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("GameLogTable.Delete: %v", err))
 	}
@@ -377,7 +377,7 @@ func (t *stdbGameLogTableHandle) Scan() (runtime.TableIterator[GameLog], error) 
 		return nil, err
 	}
 	return runtime.NewTableIterator[GameLog](iter, func(r bsatn.Reader, v *GameLog) error {
-		return stdbReadGameLog(r, v)
+		return StdbReadGameLog(r, v)
 	}), nil
 }
 

@@ -48,7 +48,7 @@ func runGenerateServer(dir, output string) error {
 		return fmt.Errorf("stdb-go: %w", err)
 	}
 
-	// Parse all Go source files in the directory.
+	// Parse all Go packages under the module root (nested directories included).
 	parsed, err := parser.ParseDirectory(absDir)
 	if err != nil {
 		return fmt.Errorf("stdb-go: parse error: %w", err)
@@ -60,17 +60,29 @@ func runGenerateServer(dir, output string) error {
 		return fmt.Errorf("stdb-go: analysis error: %w", err)
 	}
 
-	// Generate code.
-	code, err := servergen.Generate(analyzed)
+	// Generate code (one or more files for multi-package modules).
+	files, err := servergen.GenerateAll(analyzed)
 	if err != nil {
 		return fmt.Errorf("stdb-go: generation error: %w", err)
 	}
 
-	outputPath := filepath.Join(absDir, output)
-	if err := os.WriteFile(outputPath, code, 0644); err != nil {
-		return fmt.Errorf("stdb-go: write error: %w", err)
+	for _, f := range files {
+		// Honor --output only for the primary single-package artifact name.
+		rel := f.RelPath
+		if !analyzed.MultiPackage && output != "" && output != "stdb_generated.go" {
+			// Custom output name for flat modules.
+			if filepath.Base(rel) == "stdb_generated.go" {
+				rel = output
+			}
+		}
+		outputPath := filepath.Join(absDir, rel)
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return fmt.Errorf("stdb-go: mkdir: %w", err)
+		}
+		if err := os.WriteFile(outputPath, f.Content, 0644); err != nil {
+			return fmt.Errorf("stdb-go: write error: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "stdb-go: wrote %s\n", outputPath)
 	}
-
-	fmt.Fprintf(os.Stderr, "stdb-go: wrote %s\n", outputPath)
 	return nil
 }

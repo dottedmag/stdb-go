@@ -8,9 +8,14 @@ import (
 )
 
 // generateTables generates table accessor types and their methods.
-func generateTables(module *AnalyzedModule, w *strings.Builder) {
-	for _, table := range module.Tables {
-		generateTableType(module, &table, w)
+// When multi-package, only tables owned by filterRelDir are emitted.
+func generateTables(module *AnalyzedModule, w *strings.Builder, filterRelDir string) {
+	for i := range module.Tables {
+		table := &module.Tables[i]
+		if module.MultiPackage && table.RelDir != filterRelDir {
+			continue
+		}
+		generateTableType(module, table, w)
 	}
 }
 
@@ -111,7 +116,7 @@ func generateInsert(table *AnalyzedTable, typeName, structName string, w *string
 	fmt.Fprintf(w, "func (t *%s) Insert(row %s) %s {\n", typeName, structName, structName)
 	fmt.Fprintf(w, "\tt.resolve()\n")
 	fmt.Fprintf(w, "\truntime.GlobalWriter.Reset()\n")
-	fmt.Fprintf(w, "\tstdbWrite%s(runtime.GlobalWriter, &row)\n", structName)
+	fmt.Fprintf(w, "\tStdbWrite%s(runtime.GlobalWriter, &row)\n", structName)
 	fmt.Fprintf(w, "\tseqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())\n")
 	fmt.Fprintf(w, "\tif err != nil { panic(fmt.Sprintf(\"%s.Insert: %%v\", err)) }\n", table.VarName)
 
@@ -138,7 +143,7 @@ func generateDelete(table *AnalyzedTable, typeName, structName string, w *string
 	fmt.Fprintf(w, "\tt.resolve()\n")
 	fmt.Fprintf(w, "\truntime.GlobalWriter.Reset()\n")
 	fmt.Fprintf(w, "\truntime.GlobalWriter.PutArrayLen(1)\n")
-	fmt.Fprintf(w, "\tstdbWrite%s(runtime.GlobalWriter, &row)\n", structName)
+	fmt.Fprintf(w, "\tStdbWrite%s(runtime.GlobalWriter, &row)\n", structName)
 	fmt.Fprintf(w, "\tif _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {\n")
 	fmt.Fprintf(w, "\t\tpanic(fmt.Sprintf(\"%s.Delete: %%v\", err))\n", table.VarName)
 	fmt.Fprintf(w, "\t}\n")
@@ -152,7 +157,7 @@ func generateScan(table *AnalyzedTable, typeName, structName string, w *strings.
 	fmt.Fprintf(w, "\titer, err := sys.DatastoreTableScanBSATN(t.tableId)\n")
 	fmt.Fprintf(w, "\tif err != nil { return nil, err }\n")
 	fmt.Fprintf(w, "\treturn runtime.NewTableIterator[%s](iter, func(r bsatn.Reader, v *%s) error {\n", structName, structName)
-	fmt.Fprintf(w, "\t\treturn stdbRead%s(r, v)\n", structName)
+	fmt.Fprintf(w, "\t\treturn StdbRead%s(r, v)\n", structName)
 	fmt.Fprintf(w, "\t}), nil\n")
 	fmt.Fprintf(w, "}\n\n")
 }
@@ -191,7 +196,7 @@ func generateFindBy(module *AnalyzedModule, table *AnalyzedTable, typeName, stru
 	fmt.Fprintf(w, "\tif !ok || err != nil { var zero %s; return zero, false, err }\n", structName)
 	fmt.Fprintf(w, "\tvar result %s\n", structName)
 	fmt.Fprintf(w, "\tr := bsatn.NewZeroCopyReader(data)\n")
-	fmt.Fprintf(w, "\tif err := stdbRead%s(r, &result); err != nil { var zero %s; return zero, false, err }\n", structName, structName)
+	fmt.Fprintf(w, "\tif err := StdbRead%s(r, &result); err != nil { var zero %s; return zero, false, err }\n", structName, structName)
 	fmt.Fprintf(w, "\treturn result, true, nil\n")
 	fmt.Fprintf(w, "}\n\n")
 }
@@ -212,7 +217,7 @@ func generateFilterBy(module *AnalyzedModule, table *AnalyzedTable, typeName, st
 	fmt.Fprintf(w, "\titer, err := sys.DatastoreIndexScanPointBSATN(indexId, keyBytes)\n")
 	fmt.Fprintf(w, "\tif err != nil { return nil, err }\n")
 	fmt.Fprintf(w, "\treturn runtime.NewTableIterator[%s](iter, func(r bsatn.Reader, v *%s) error {\n", structName, structName)
-	fmt.Fprintf(w, "\t\treturn stdbRead%s(r, v)\n", structName)
+	fmt.Fprintf(w, "\t\treturn StdbRead%s(r, v)\n", structName)
 	fmt.Fprintf(w, "\t}), nil\n")
 	fmt.Fprintf(w, "}\n\n")
 }
@@ -226,7 +231,7 @@ func generateUpdateBy(table *AnalyzedTable, typeName, structName string, field A
 	fmt.Fprintf(w, "\tindexId, err := runtime.GetIndexId(%q)\n", idxName)
 	fmt.Fprintf(w, "\tif err != nil { panic(fmt.Sprintf(\"%s.%s: %%v\", err)) }\n", table.VarName, methodName)
 	fmt.Fprintf(w, "\truntime.GlobalWriter.Reset()\n")
-	fmt.Fprintf(w, "\tstdbWrite%s(runtime.GlobalWriter, &row)\n", structName)
+	fmt.Fprintf(w, "\tStdbWrite%s(runtime.GlobalWriter, &row)\n", structName)
 	fmt.Fprintf(w, "\tseqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())\n")
 	fmt.Fprintf(w, "\tif err != nil { panic(fmt.Sprintf(\"%s.%s: %%v\", err)) }\n", table.VarName, methodName)
 
@@ -323,7 +328,7 @@ func generateFilterByMultiColumn(module *AnalyzedModule, table *AnalyzedTable, t
 
 	fmt.Fprintf(w, "\tif err != nil { return nil, err }\n")
 	fmt.Fprintf(w, "\treturn runtime.NewTableIterator[%s](iter, func(r bsatn.Reader, v *%s) error {\n", structName, structName)
-	fmt.Fprintf(w, "\t\treturn stdbRead%s(r, v)\n", structName)
+	fmt.Fprintf(w, "\t\treturn StdbRead%s(r, v)\n", structName)
 	fmt.Fprintf(w, "\t}), nil\n")
 	fmt.Fprintf(w, "}\n\n")
 }
@@ -386,7 +391,7 @@ func writeKeyEncodeOnWriter(w *strings.Builder, indent string, algType AlgType, 
 					return
 				case TypeKindStruct:
 					// Struct keys: use the generated BSATN writer.
-					fmt.Fprintf(w, "%sstdbWrite%s(%s, &%s)\n", indent, algType.TypeName, writerName, expr)
+					fmt.Fprintf(w, "%sStdbWrite%s(%s, &%s)\n", indent, algType.TypeName, writerName, expr)
 					return
 				}
 			}

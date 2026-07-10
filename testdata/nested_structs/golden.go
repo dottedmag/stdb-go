@@ -25,31 +25,31 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteEntity(w bsatn.Writer, v *Entity) {
+func StdbWriteEntity(w bsatn.Writer, v *Entity) {
 	w.PutU64(v.Id)
-	stdbWriteTransform(w, &v.Transform)
+	StdbWriteTransform(w, &v.Transform)
 }
 
-func stdbReadEntity(r bsatn.Reader, v *Entity) error {
+func StdbReadEntity(r bsatn.Reader, v *Entity) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
 	}
-	if err = stdbReadTransform(r, &v.Transform); err != nil {
+	if err = StdbReadTransform(r, &v.Transform); err != nil {
 		return fmt.Errorf("decode Transform: %w", err)
 	}
 	return nil
 }
 
-func stdbWriteTransform(w bsatn.Writer, v *Transform) {
-	stdbWriteVector2(w, &v.Position)
+func StdbWriteTransform(w bsatn.Writer, v *Transform) {
+	StdbWriteVector2(w, &v.Position)
 	w.PutF32(v.Rotation)
 	w.PutF32(v.Scale)
 }
 
-func stdbReadTransform(r bsatn.Reader, v *Transform) error {
+func StdbReadTransform(r bsatn.Reader, v *Transform) error {
 	var err error
-	if err = stdbReadVector2(r, &v.Position); err != nil {
+	if err = StdbReadVector2(r, &v.Position); err != nil {
 		return fmt.Errorf("decode Position: %w", err)
 	}
 	if v.Rotation, err = r.GetF32(); err != nil {
@@ -61,12 +61,12 @@ func stdbReadTransform(r bsatn.Reader, v *Transform) error {
 	return nil
 }
 
-func stdbWriteVector2(w bsatn.Writer, v *Vector2) {
+func StdbWriteVector2(w bsatn.Writer, v *Vector2) {
 	w.PutF64(v.X)
 	w.PutF64(v.Y)
 }
 
-func stdbReadVector2(r bsatn.Reader, v *Vector2) error {
+func StdbReadVector2(r bsatn.Reader, v *Vector2) error {
 	var err error
 	if v.X, err = r.GetF64(); err != nil {
 		return fmt.Errorf("decode X: %w", err)
@@ -99,7 +99,7 @@ func (t *stdbEntityTableHandle) resolve() {
 func (t *stdbEntityTableHandle) Insert(row Entity) Entity {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("EntityTable.Insert: %v", err))
@@ -112,7 +112,7 @@ func (t *stdbEntityTableHandle) Delete(row Entity) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("EntityTable.Delete: %v", err))
 	}
@@ -125,7 +125,7 @@ func (t *stdbEntityTableHandle) Scan() (runtime.TableIterator[Entity], error) {
 		return nil, err
 	}
 	return runtime.NewTableIterator[Entity](iter, func(r bsatn.Reader, v *Entity) error {
-		return stdbReadEntity(r, v)
+		return StdbReadEntity(r, v)
 	}), nil
 }
 
@@ -161,7 +161,7 @@ func (t *stdbEntityTableHandle) FindById(key uint64) (Entity, bool, error) {
 	}
 	var result Entity
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadEntity(r, &result); err != nil {
+	if err := StdbReadEntity(r, &result); err != nil {
 		var zero Entity
 		return zero, false, err
 	}
@@ -175,7 +175,7 @@ func (t *stdbEntityTableHandle) UpdateById(row Entity) Entity {
 		panic(fmt.Sprintf("EntityTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("EntityTable.UpdateById: %v", err))

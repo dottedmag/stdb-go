@@ -25,12 +25,12 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWritePerson(w bsatn.Writer, v *Person) {
+func StdbWritePerson(w bsatn.Writer, v *Person) {
 	w.PutU64(v.Id)
 	w.PutString(v.Name)
 }
 
-func stdbReadPerson(r bsatn.Reader, v *Person) error {
+func StdbReadPerson(r bsatn.Reader, v *Person) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -63,7 +63,7 @@ func (t *stdbPersonTableHandle) resolve() {
 func (t *stdbPersonTableHandle) Insert(row Person) Person {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWritePerson(runtime.GlobalWriter, &row)
+	StdbWritePerson(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("PersonTable.Insert: %v", err))
@@ -82,7 +82,7 @@ func (t *stdbPersonTableHandle) Delete(row Person) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWritePerson(runtime.GlobalWriter, &row)
+	StdbWritePerson(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("PersonTable.Delete: %v", err))
 	}
@@ -95,7 +95,7 @@ func (t *stdbPersonTableHandle) Scan() (runtime.TableIterator[Person], error) {
 		return nil, err
 	}
 	return runtime.NewTableIterator[Person](iter, func(r bsatn.Reader, v *Person) error {
-		return stdbReadPerson(r, v)
+		return StdbReadPerson(r, v)
 	}), nil
 }
 
@@ -131,7 +131,7 @@ func (t *stdbPersonTableHandle) FindById(key uint64) (Person, bool, error) {
 	}
 	var result Person
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadPerson(r, &result); err != nil {
+	if err := StdbReadPerson(r, &result); err != nil {
 		var zero Person
 		return zero, false, err
 	}
@@ -145,7 +145,7 @@ func (t *stdbPersonTableHandle) UpdateById(row Person) Person {
 		panic(fmt.Sprintf("PersonTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWritePerson(runtime.GlobalWriter, &row)
+	StdbWritePerson(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("PersonTable.UpdateById: %v", err))

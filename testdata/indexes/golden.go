@@ -25,14 +25,14 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteIndexed(w bsatn.Writer, v *Indexed) {
+func StdbWriteIndexed(w bsatn.Writer, v *Indexed) {
 	w.PutU64(v.Id)
 	w.PutString(v.Name)
 	w.PutU32(v.Age)
 	w.PutU8(v.Status)
 }
 
-func stdbReadIndexed(r bsatn.Reader, v *Indexed) error {
+func StdbReadIndexed(r bsatn.Reader, v *Indexed) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -71,7 +71,7 @@ func (t *stdbIndexedTableHandle) resolve() {
 func (t *stdbIndexedTableHandle) Insert(row Indexed) Indexed {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteIndexed(runtime.GlobalWriter, &row)
+	StdbWriteIndexed(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("IndexedTable.Insert: %v", err))
@@ -84,7 +84,7 @@ func (t *stdbIndexedTableHandle) Delete(row Indexed) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteIndexed(runtime.GlobalWriter, &row)
+	StdbWriteIndexed(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("IndexedTable.Delete: %v", err))
 	}
@@ -97,7 +97,7 @@ func (t *stdbIndexedTableHandle) Scan() (runtime.TableIterator[Indexed], error) 
 		return nil, err
 	}
 	return runtime.NewTableIterator[Indexed](iter, func(r bsatn.Reader, v *Indexed) error {
-		return stdbReadIndexed(r, v)
+		return StdbReadIndexed(r, v)
 	}), nil
 }
 
@@ -133,7 +133,7 @@ func (t *stdbIndexedTableHandle) FindById(key uint64) (Indexed, bool, error) {
 	}
 	var result Indexed
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadIndexed(r, &result); err != nil {
+	if err := StdbReadIndexed(r, &result); err != nil {
 		var zero Indexed
 		return zero, false, err
 	}
@@ -147,7 +147,7 @@ func (t *stdbIndexedTableHandle) UpdateById(row Indexed) Indexed {
 		panic(fmt.Sprintf("IndexedTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteIndexed(runtime.GlobalWriter, &row)
+	StdbWriteIndexed(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("IndexedTable.UpdateById: %v", err))
@@ -193,7 +193,7 @@ func (t *stdbIndexedTableHandle) FindByName(key string) (Indexed, bool, error) {
 	}
 	var result Indexed
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadIndexed(r, &result); err != nil {
+	if err := StdbReadIndexed(r, &result); err != nil {
 		var zero Indexed
 		return zero, false, err
 	}
@@ -207,7 +207,7 @@ func (t *stdbIndexedTableHandle) UpdateByName(row Indexed) Indexed {
 		panic(fmt.Sprintf("IndexedTable.UpdateByName: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteIndexed(runtime.GlobalWriter, &row)
+	StdbWriteIndexed(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("IndexedTable.UpdateByName: %v", err))
@@ -246,7 +246,7 @@ func (t *stdbIndexedTableHandle) FilterByAge(key uint32) (runtime.TableIterator[
 		return nil, err
 	}
 	return runtime.NewTableIterator[Indexed](iter, func(r bsatn.Reader, v *Indexed) error {
-		return stdbReadIndexed(r, v)
+		return StdbReadIndexed(r, v)
 	}), nil
 }
 
@@ -284,7 +284,7 @@ func (t *stdbIndexedTableHandle) FilterByIdAndName(id uint64, name string) (runt
 		return nil, err
 	}
 	return runtime.NewTableIterator[Indexed](iter, func(r bsatn.Reader, v *Indexed) error {
-		return stdbReadIndexed(r, v)
+		return StdbReadIndexed(r, v)
 	}), nil
 }
 
@@ -303,7 +303,7 @@ func (t *stdbIndexedTableHandle) FilterById(id uint64) (runtime.TableIterator[In
 		return nil, err
 	}
 	return runtime.NewTableIterator[Indexed](iter, func(r bsatn.Reader, v *Indexed) error {
-		return stdbReadIndexed(r, v)
+		return StdbReadIndexed(r, v)
 	}), nil
 }
 

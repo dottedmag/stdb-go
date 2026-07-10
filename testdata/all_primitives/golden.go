@@ -25,7 +25,7 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteAllPrimitives(w bsatn.Writer, v *AllPrimitives) {
+func StdbWriteAllPrimitives(w bsatn.Writer, v *AllPrimitives) {
 	w.PutU64(v.Id)
 	w.PutBool(v.ABool)
 	w.PutU8(v.AU8)
@@ -41,7 +41,7 @@ func stdbWriteAllPrimitives(w bsatn.Writer, v *AllPrimitives) {
 	w.PutString(v.AString)
 }
 
-func stdbReadAllPrimitives(r bsatn.Reader, v *AllPrimitives) error {
+func StdbReadAllPrimitives(r bsatn.Reader, v *AllPrimitives) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -107,7 +107,7 @@ func (t *stdbAllPrimitivesTableHandle) resolve() {
 func (t *stdbAllPrimitivesTableHandle) Insert(row AllPrimitives) AllPrimitives {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteAllPrimitives(runtime.GlobalWriter, &row)
+	StdbWriteAllPrimitives(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("AllPrimitivesTable.Insert: %v", err))
@@ -126,7 +126,7 @@ func (t *stdbAllPrimitivesTableHandle) Delete(row AllPrimitives) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteAllPrimitives(runtime.GlobalWriter, &row)
+	StdbWriteAllPrimitives(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("AllPrimitivesTable.Delete: %v", err))
 	}
@@ -139,7 +139,7 @@ func (t *stdbAllPrimitivesTableHandle) Scan() (runtime.TableIterator[AllPrimitiv
 		return nil, err
 	}
 	return runtime.NewTableIterator[AllPrimitives](iter, func(r bsatn.Reader, v *AllPrimitives) error {
-		return stdbReadAllPrimitives(r, v)
+		return StdbReadAllPrimitives(r, v)
 	}), nil
 }
 
@@ -175,7 +175,7 @@ func (t *stdbAllPrimitivesTableHandle) FindById(key uint64) (AllPrimitives, bool
 	}
 	var result AllPrimitives
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadAllPrimitives(r, &result); err != nil {
+	if err := StdbReadAllPrimitives(r, &result); err != nil {
 		var zero AllPrimitives
 		return zero, false, err
 	}
@@ -189,7 +189,7 @@ func (t *stdbAllPrimitivesTableHandle) UpdateById(row AllPrimitives) AllPrimitiv
 		panic(fmt.Sprintf("AllPrimitivesTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteAllPrimitives(runtime.GlobalWriter, &row)
+	StdbWriteAllPrimitives(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("AllPrimitivesTable.UpdateById: %v", err))

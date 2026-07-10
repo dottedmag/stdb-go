@@ -25,7 +25,7 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteOptionalData(w bsatn.Writer, v *OptionalData) {
+func StdbWriteOptionalData(w bsatn.Writer, v *OptionalData) {
 	w.PutU64(v.Id)
 	if v.OptName != nil {
 		w.PutSumTag(0) // Some
@@ -44,7 +44,7 @@ func stdbWriteOptionalData(w bsatn.Writer, v *OptionalData) {
 	bsatn.WriteByteArray(w, v.RawData)
 }
 
-func stdbReadOptionalData(r bsatn.Reader, v *OptionalData) error {
+func StdbReadOptionalData(r bsatn.Reader, v *OptionalData) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -116,7 +116,7 @@ func (t *stdbOptionalDataTableHandle) resolve() {
 func (t *stdbOptionalDataTableHandle) Insert(row OptionalData) OptionalData {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteOptionalData(runtime.GlobalWriter, &row)
+	StdbWriteOptionalData(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("OptionalDataTable.Insert: %v", err))
@@ -129,7 +129,7 @@ func (t *stdbOptionalDataTableHandle) Delete(row OptionalData) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteOptionalData(runtime.GlobalWriter, &row)
+	StdbWriteOptionalData(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("OptionalDataTable.Delete: %v", err))
 	}
@@ -142,7 +142,7 @@ func (t *stdbOptionalDataTableHandle) Scan() (runtime.TableIterator[OptionalData
 		return nil, err
 	}
 	return runtime.NewTableIterator[OptionalData](iter, func(r bsatn.Reader, v *OptionalData) error {
-		return stdbReadOptionalData(r, v)
+		return StdbReadOptionalData(r, v)
 	}), nil
 }
 
@@ -178,7 +178,7 @@ func (t *stdbOptionalDataTableHandle) FindById(key uint64) (OptionalData, bool, 
 	}
 	var result OptionalData
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadOptionalData(r, &result); err != nil {
+	if err := StdbReadOptionalData(r, &result); err != nil {
 		var zero OptionalData
 		return zero, false, err
 	}
@@ -192,7 +192,7 @@ func (t *stdbOptionalDataTableHandle) UpdateById(row OptionalData) OptionalData 
 		panic(fmt.Sprintf("OptionalDataTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteOptionalData(runtime.GlobalWriter, &row)
+	StdbWriteOptionalData(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("OptionalDataTable.UpdateById: %v", err))

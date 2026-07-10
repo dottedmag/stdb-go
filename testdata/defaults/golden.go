@@ -25,11 +25,11 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteStatus(w bsatn.Writer, v *Status) {
+func StdbWriteStatus(w bsatn.Writer, v *Status) {
 	w.PutU8(uint8(*v))
 }
 
-func stdbReadStatus(r bsatn.Reader, v *Status) error {
+func StdbReadStatus(r bsatn.Reader, v *Status) error {
 	tag, err := r.GetU8()
 	if err != nil {
 		return fmt.Errorf("decode Status: %w", err)
@@ -41,7 +41,7 @@ func stdbReadStatus(r bsatn.Reader, v *Status) error {
 	return nil
 }
 
-func stdbWriteWidget(w bsatn.Writer, v *Widget) {
+func StdbWriteWidget(w bsatn.Writer, v *Widget) {
 	w.PutU64(v.Id)
 	w.PutU32(v.Count)
 	w.PutI64(v.Score)
@@ -49,7 +49,7 @@ func stdbWriteWidget(w bsatn.Writer, v *Widget) {
 	w.PutBool(v.Active)
 	w.PutString(v.Name)
 	w.PutString(v.Note)
-	stdbWriteStatus(w, &v.State)
+	StdbWriteStatus(w, &v.State)
 	if v.Maybe != nil {
 		w.PutSumTag(0) // Some
 		w.PutU64((*v.Maybe))
@@ -63,10 +63,10 @@ func stdbWriteWidget(w bsatn.Writer, v *Widget) {
 		w.PutSumTag(1) // None
 	}
 	bsatn.WriteByteArray(w, v.Blob)
-	stdbWritePoint(w, &v.Origin)
+	StdbWritePoint(w, &v.Origin)
 }
 
-func stdbReadWidget(r bsatn.Reader, v *Widget) error {
+func StdbReadWidget(r bsatn.Reader, v *Widget) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -89,7 +89,7 @@ func stdbReadWidget(r bsatn.Reader, v *Widget) error {
 	if v.Note, err = r.GetString(); err != nil {
 		return fmt.Errorf("decode Note: %w", err)
 	}
-	if err = stdbReadStatus(r, &v.State); err != nil {
+	if err = StdbReadStatus(r, &v.State); err != nil {
 		return fmt.Errorf("decode State: %w", err)
 	}
 	{
@@ -125,18 +125,18 @@ func stdbReadWidget(r bsatn.Reader, v *Widget) error {
 	if v.Blob, err = bsatn.ReadByteArray(r); err != nil {
 		return fmt.Errorf("decode Blob: %w", err)
 	}
-	if err = stdbReadPoint(r, &v.Origin); err != nil {
+	if err = StdbReadPoint(r, &v.Origin); err != nil {
 		return fmt.Errorf("decode Origin: %w", err)
 	}
 	return nil
 }
 
-func stdbWritePoint(w bsatn.Writer, v *Point) {
+func StdbWritePoint(w bsatn.Writer, v *Point) {
 	w.PutF64(v.X)
 	w.PutF64(v.Y)
 }
 
-func stdbReadPoint(r bsatn.Reader, v *Point) error {
+func StdbReadPoint(r bsatn.Reader, v *Point) error {
 	var err error
 	if v.X, err = r.GetF64(); err != nil {
 		return fmt.Errorf("decode X: %w", err)
@@ -169,7 +169,7 @@ func (t *stdbWidgetTableHandle) resolve() {
 func (t *stdbWidgetTableHandle) Insert(row Widget) Widget {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteWidget(runtime.GlobalWriter, &row)
+	StdbWriteWidget(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("WidgetTable.Insert: %v", err))
@@ -188,7 +188,7 @@ func (t *stdbWidgetTableHandle) Delete(row Widget) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteWidget(runtime.GlobalWriter, &row)
+	StdbWriteWidget(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("WidgetTable.Delete: %v", err))
 	}
@@ -201,7 +201,7 @@ func (t *stdbWidgetTableHandle) Scan() (runtime.TableIterator[Widget], error) {
 		return nil, err
 	}
 	return runtime.NewTableIterator[Widget](iter, func(r bsatn.Reader, v *Widget) error {
-		return stdbReadWidget(r, v)
+		return StdbReadWidget(r, v)
 	}), nil
 }
 
@@ -237,7 +237,7 @@ func (t *stdbWidgetTableHandle) FindById(key uint64) (Widget, bool, error) {
 	}
 	var result Widget
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadWidget(r, &result); err != nil {
+	if err := StdbReadWidget(r, &result); err != nil {
 		var zero Widget
 		return zero, false, err
 	}
@@ -251,7 +251,7 @@ func (t *stdbWidgetTableHandle) UpdateById(row Widget) Widget {
 		panic(fmt.Sprintf("WidgetTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteWidget(runtime.GlobalWriter, &row)
+	StdbWriteWidget(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("WidgetTable.UpdateById: %v", err))
@@ -296,7 +296,7 @@ func (t *stdbWidgetTableHandle) FilterByName(key string) (runtime.TableIterator[
 		return nil, err
 	}
 	return runtime.NewTableIterator[Widget](iter, func(r bsatn.Reader, v *Widget) error {
-		return stdbReadWidget(r, v)
+		return StdbReadWidget(r, v)
 	}), nil
 }
 

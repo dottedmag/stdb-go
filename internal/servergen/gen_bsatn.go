@@ -6,11 +6,18 @@ import (
 	"unicode"
 )
 
-// generateBsatn generates BSATN encode/decode functions for all types used in the module.
-func generateBsatn(module *AnalyzedModule, w *strings.Builder) {
-	// Generate encode/decode for each type in typespace order.
+// generateBsatn generates BSATN encode/decode functions for types in the module.
+// When module.MultiPackage is true, only types whose RelDir matches filterRelDir
+// are emitted ("" = root package). When single-package, all types are emitted.
+func generateBsatn(module *AnalyzedModule, w *strings.Builder, filterRelDir string) {
 	for _, typeName := range module.TypeOrder {
 		typeInfo := module.Types[typeName]
+		if typeInfo == nil {
+			continue
+		}
+		if module.MultiPackage && typeInfo.RelDir != filterRelDir {
+			continue
+		}
 		switch typeInfo.Kind {
 		case TypeKindStruct:
 			generateStructEncode(typeInfo, w)
@@ -25,9 +32,9 @@ func generateBsatn(module *AnalyzedModule, w *strings.Builder) {
 	}
 }
 
-// generateStructEncode generates a stdbWrite<Name> function.
+// generateStructEncode generates a StdbWrite<Name> function.
 func generateStructEncode(t *AnalyzedType, w *strings.Builder) {
-	fmt.Fprintf(w, "func stdbWrite%s(w bsatn.Writer, v *%s) {\n", t.Name, t.Name)
+	fmt.Fprintf(w, "func StdbWrite%s(w bsatn.Writer, v *%s) {\n", t.Name, t.Name)
 	for _, f := range t.Fields {
 		ptr := fmt.Sprintf("v.%s", f.GoName)
 		writeFieldEncode(w, "\t", f.AlgType, ptr, f.GoName)
@@ -35,9 +42,9 @@ func generateStructEncode(t *AnalyzedType, w *strings.Builder) {
 	fmt.Fprintf(w, "}\n\n")
 }
 
-// generateStructDecode generates a stdbRead<Name> function.
+// generateStructDecode generates a StdbRead<Name> function.
 func generateStructDecode(t *AnalyzedType, w *strings.Builder) {
-	fmt.Fprintf(w, "func stdbRead%s(r bsatn.Reader, v *%s) error {\n", t.Name, t.Name)
+	fmt.Fprintf(w, "func StdbRead%s(r bsatn.Reader, v *%s) error {\n", t.Name, t.Name)
 	if len(t.Fields) > 0 {
 		fmt.Fprintf(w, "\tvar err error\n")
 	}
@@ -108,7 +115,7 @@ func writeFieldEncode(w *strings.Builder, indent string, algType AlgType, expr s
 		fmt.Fprintf(w, "%s\tw.PutBytes(b[:])\n", indent)
 		fmt.Fprintf(w, "%s}\n", indent)
 	case AlgKindScheduleAt:
-		fmt.Fprintf(w, "%sstdbWriteScheduleAt(w, %s)\n", indent, expr)
+		fmt.Fprintf(w, "%sStdbWriteScheduleAt(w, %s)\n", indent, expr)
 	case AlgKindBytes:
 		fmt.Fprintf(w, "%sbsatn.WriteByteArray(w, %s)\n", indent, expr)
 	case AlgKindArray:
@@ -127,7 +134,7 @@ func writeFieldEncode(w *strings.Builder, indent string, algType AlgType, expr s
 		fmt.Fprintf(w, "%s}\n", indent)
 	case AlgKindRef:
 		// Reference to a typespace type (struct, sum type, or enum).
-		fmt.Fprintf(w, "%sstdbWrite%s(w, &%s)\n", indent, algType.TypeName, expr)
+		fmt.Fprintf(w, "%sStdbWrite%s(w, &%s)\n", indent, algType.TypeName, expr)
 	}
 }
 
@@ -246,14 +253,14 @@ func writeFieldDecode(w *strings.Builder, indent string, algType AlgType, expr s
 		fmt.Fprintf(w, "%s\t}\n", indent)
 		fmt.Fprintf(w, "%s}\n", indent)
 	case AlgKindRef:
-		fmt.Fprintf(w, "%sif err = stdbRead%s(r, &%s); err != nil { return fmt.Errorf(\"decode %s: %%w\", err) }\n", indent, algType.TypeName, expr, label)
+		fmt.Fprintf(w, "%sif err = StdbRead%s(r, &%s); err != nil { return fmt.Errorf(\"decode %s: %%w\", err) }\n", indent, algType.TypeName, expr, label)
 	}
 }
 
 // generateSumTypeEncode generates encode for a sum type (interface-based).
 func generateSumTypeEncode(t *AnalyzedType, w *strings.Builder) {
 	// The encode function takes a pointer to the interface value.
-	fmt.Fprintf(w, "func stdbWrite%s(w bsatn.Writer, v *%s) {\n", t.Name, t.Name)
+	fmt.Fprintf(w, "func StdbWrite%s(w bsatn.Writer, v *%s) {\n", t.Name, t.Name)
 	fmt.Fprintf(w, "\tswitch val := (*v).(type) {\n")
 	for _, variant := range t.Variants {
 		fmt.Fprintf(w, "\tcase %s:\n", variant.StructName)
@@ -271,14 +278,14 @@ func generateSumTypeEncode(t *AnalyzedType, w *strings.Builder) {
 		}
 	}
 	fmt.Fprintf(w, "\tdefault:\n")
-	fmt.Fprintf(w, "\t\tpanic(fmt.Sprintf(\"stdbWrite%s: unknown variant %%T\", *v))\n", t.Name)
+	fmt.Fprintf(w, "\t\tpanic(fmt.Sprintf(\"StdbWrite%s: unknown variant %%T\", *v))\n", t.Name)
 	fmt.Fprintf(w, "\t}\n")
 	fmt.Fprintf(w, "}\n\n")
 }
 
 // generateSumTypeDecode generates decode for a sum type.
 func generateSumTypeDecode(t *AnalyzedType, w *strings.Builder) {
-	fmt.Fprintf(w, "func stdbRead%s(r bsatn.Reader, v *%s) error {\n", t.Name, t.Name)
+	fmt.Fprintf(w, "func StdbRead%s(r bsatn.Reader, v *%s) error {\n", t.Name, t.Name)
 	fmt.Fprintf(w, "\tvar err error\n")
 	fmt.Fprintf(w, "\tvar tag uint8\n")
 	fmt.Fprintf(w, "\tif tag, err = r.GetU8(); err != nil { return fmt.Errorf(\"decode %s tag: %%w\", err) }\n", t.Name)
@@ -304,14 +311,14 @@ func generateSumTypeDecode(t *AnalyzedType, w *strings.Builder) {
 
 // generateEnumEncode generates encode for a simple enum (uint8 tag).
 func generateEnumEncode(t *AnalyzedType, w *strings.Builder) {
-	fmt.Fprintf(w, "func stdbWrite%s(w bsatn.Writer, v *%s) {\n", t.Name, t.Name)
+	fmt.Fprintf(w, "func StdbWrite%s(w bsatn.Writer, v *%s) {\n", t.Name, t.Name)
 	fmt.Fprintf(w, "\tw.PutU8(uint8(*v))\n")
 	fmt.Fprintf(w, "}\n\n")
 }
 
 // generateEnumDecode generates decode for a simple enum.
 func generateEnumDecode(t *AnalyzedType, w *strings.Builder) {
-	fmt.Fprintf(w, "func stdbRead%s(r bsatn.Reader, v *%s) error {\n", t.Name, t.Name)
+	fmt.Fprintf(w, "func StdbRead%s(r bsatn.Reader, v *%s) error {\n", t.Name, t.Name)
 	fmt.Fprintf(w, "\ttag, err := r.GetU8()\n")
 	fmt.Fprintf(w, "\tif err != nil { return fmt.Errorf(\"decode %s: %%w\", err) }\n", t.Name)
 	fmt.Fprintf(w, "\tif int(tag) >= %d {\n", len(t.EnumVariants))
@@ -339,7 +346,7 @@ func optTmpVar(label string) string {
 
 // generateScheduleAtHelpers generates the shared ScheduleAt encode/decode helpers.
 func generateScheduleAtHelpers(w *strings.Builder) {
-	w.WriteString(`func stdbWriteScheduleAt(w bsatn.Writer, sa types.ScheduleAt) {
+	w.WriteString(`func StdbWriteScheduleAt(w bsatn.Writer, sa types.ScheduleAt) {
 	switch v := sa.(type) {
 	case types.ScheduleAtInterval:
 		w.PutSumTag(0)
@@ -348,7 +355,7 @@ func generateScheduleAtHelpers(w *strings.Builder) {
 		w.PutSumTag(1)
 		w.PutI64(v.Value.Microseconds())
 	default:
-		panic(fmt.Sprintf("stdbWriteScheduleAt: unknown variant %T", sa))
+		panic(fmt.Sprintf("StdbWriteScheduleAt: unknown variant %T", sa))
 	}
 }
 

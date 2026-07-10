@@ -25,7 +25,7 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteScheduleAt(w bsatn.Writer, sa types.ScheduleAt) {
+func StdbWriteScheduleAt(w bsatn.Writer, sa types.ScheduleAt) {
 	switch v := sa.(type) {
 	case types.ScheduleAtInterval:
 		w.PutSumTag(0)
@@ -34,16 +34,16 @@ func stdbWriteScheduleAt(w bsatn.Writer, sa types.ScheduleAt) {
 		w.PutSumTag(1)
 		w.PutI64(v.Value.Microseconds())
 	default:
-		panic(fmt.Sprintf("stdbWriteScheduleAt: unknown variant %T", sa))
+		panic(fmt.Sprintf("StdbWriteScheduleAt: unknown variant %T", sa))
 	}
 }
 
-func stdbWriteScheduledProcTable(w bsatn.Writer, v *ScheduledProcTable) {
+func StdbWriteScheduledProcTable(w bsatn.Writer, v *ScheduledProcTable) {
 	w.PutU64(v.ScheduledId)
-	stdbWriteScheduleAt(w, v.ScheduledAt)
+	StdbWriteScheduleAt(w, v.ScheduledAt)
 }
 
-func stdbReadScheduledProcTable(r bsatn.Reader, v *ScheduledProcTable) error {
+func StdbReadScheduledProcTable(r bsatn.Reader, v *ScheduledProcTable) error {
 	var err error
 	if v.ScheduledId, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode ScheduledId: %w", err)
@@ -80,7 +80,7 @@ func (t *stdbScheduledProcTableTableHandle) resolve() {
 func (t *stdbScheduledProcTableTableHandle) Insert(row ScheduledProcTable) ScheduledProcTable {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteScheduledProcTable(runtime.GlobalWriter, &row)
+	StdbWriteScheduledProcTable(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("ScheduledProcTableTable.Insert: %v", err))
@@ -99,7 +99,7 @@ func (t *stdbScheduledProcTableTableHandle) Delete(row ScheduledProcTable) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteScheduledProcTable(runtime.GlobalWriter, &row)
+	StdbWriteScheduledProcTable(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("ScheduledProcTableTable.Delete: %v", err))
 	}
@@ -112,7 +112,7 @@ func (t *stdbScheduledProcTableTableHandle) Scan() (runtime.TableIterator[Schedu
 		return nil, err
 	}
 	return runtime.NewTableIterator[ScheduledProcTable](iter, func(r bsatn.Reader, v *ScheduledProcTable) error {
-		return stdbReadScheduledProcTable(r, v)
+		return StdbReadScheduledProcTable(r, v)
 	}), nil
 }
 
@@ -148,7 +148,7 @@ func (t *stdbScheduledProcTableTableHandle) FindByScheduledId(key uint64) (Sched
 	}
 	var result ScheduledProcTable
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadScheduledProcTable(r, &result); err != nil {
+	if err := StdbReadScheduledProcTable(r, &result); err != nil {
 		var zero ScheduledProcTable
 		return zero, false, err
 	}
@@ -162,7 +162,7 @@ func (t *stdbScheduledProcTableTableHandle) UpdateByScheduledId(row ScheduledPro
 		panic(fmt.Sprintf("ScheduledProcTableTable.UpdateByScheduledId: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteScheduledProcTable(runtime.GlobalWriter, &row)
+	StdbWriteScheduledProcTable(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("ScheduledProcTableTable.UpdateByScheduledId: %v", err))

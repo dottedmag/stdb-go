@@ -25,7 +25,7 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteShape(w bsatn.Writer, v *Shape) {
+func StdbWriteShape(w bsatn.Writer, v *Shape) {
 	switch val := (*v).(type) {
 	case ShapeCircle:
 		w.PutSumTag(0)
@@ -37,11 +37,11 @@ func stdbWriteShape(w bsatn.Writer, v *Shape) {
 	case ShapePoint:
 		w.PutSumTag(2)
 	default:
-		panic(fmt.Sprintf("stdbWriteShape: unknown variant %T", *v))
+		panic(fmt.Sprintf("StdbWriteShape: unknown variant %T", *v))
 	}
 }
 
-func stdbReadShape(r bsatn.Reader, v *Shape) error {
+func StdbReadShape(r bsatn.Reader, v *Shape) error {
 	var err error
 	var tag uint8
 	if tag, err = r.GetU8(); err != nil {

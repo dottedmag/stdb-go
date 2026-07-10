@@ -25,12 +25,12 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteEntity(w bsatn.Writer, v *Entity) {
+func StdbWriteEntity(w bsatn.Writer, v *Entity) {
 	w.PutU64(v.Id)
 	w.PutString(v.Name)
 }
 
-func stdbReadEntity(r bsatn.Reader, v *Entity) error {
+func StdbReadEntity(r bsatn.Reader, v *Entity) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -63,7 +63,7 @@ func (t *stdbActiveEntityTableHandle) resolve() {
 func (t *stdbActiveEntityTableHandle) Insert(row Entity) Entity {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("ActiveEntityTable.Insert: %v", err))
@@ -76,7 +76,7 @@ func (t *stdbActiveEntityTableHandle) Delete(row Entity) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("ActiveEntityTable.Delete: %v", err))
 	}
@@ -89,7 +89,7 @@ func (t *stdbActiveEntityTableHandle) Scan() (runtime.TableIterator[Entity], err
 		return nil, err
 	}
 	return runtime.NewTableIterator[Entity](iter, func(r bsatn.Reader, v *Entity) error {
-		return stdbReadEntity(r, v)
+		return StdbReadEntity(r, v)
 	}), nil
 }
 
@@ -125,7 +125,7 @@ func (t *stdbActiveEntityTableHandle) FindById(key uint64) (Entity, bool, error)
 	}
 	var result Entity
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadEntity(r, &result); err != nil {
+	if err := StdbReadEntity(r, &result); err != nil {
 		var zero Entity
 		return zero, false, err
 	}
@@ -139,7 +139,7 @@ func (t *stdbActiveEntityTableHandle) UpdateById(row Entity) Entity {
 		panic(fmt.Sprintf("ActiveEntityTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("ActiveEntityTable.UpdateById: %v", err))
@@ -185,7 +185,7 @@ func (t *stdbInactiveEntityTableHandle) resolve() {
 func (t *stdbInactiveEntityTableHandle) Insert(row Entity) Entity {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("InactiveEntityTable.Insert: %v", err))
@@ -198,7 +198,7 @@ func (t *stdbInactiveEntityTableHandle) Delete(row Entity) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("InactiveEntityTable.Delete: %v", err))
 	}
@@ -211,7 +211,7 @@ func (t *stdbInactiveEntityTableHandle) Scan() (runtime.TableIterator[Entity], e
 		return nil, err
 	}
 	return runtime.NewTableIterator[Entity](iter, func(r bsatn.Reader, v *Entity) error {
-		return stdbReadEntity(r, v)
+		return StdbReadEntity(r, v)
 	}), nil
 }
 
@@ -247,7 +247,7 @@ func (t *stdbInactiveEntityTableHandle) FindById(key uint64) (Entity, bool, erro
 	}
 	var result Entity
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadEntity(r, &result); err != nil {
+	if err := StdbReadEntity(r, &result); err != nil {
 		var zero Entity
 		return zero, false, err
 	}
@@ -261,7 +261,7 @@ func (t *stdbInactiveEntityTableHandle) UpdateById(row Entity) Entity {
 		panic(fmt.Sprintf("InactiveEntityTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteEntity(runtime.GlobalWriter, &row)
+	StdbWriteEntity(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("InactiveEntityTable.UpdateById: %v", err))

@@ -25,11 +25,11 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteScoreTable(w bsatn.Writer, v *ScoreTable) {
+func StdbWriteScoreTable(w bsatn.Writer, v *ScoreTable) {
 	w.PutU64(v.Id)
 }
 
-func stdbReadScoreTable(r bsatn.Reader, v *ScoreTable) error {
+func StdbReadScoreTable(r bsatn.Reader, v *ScoreTable) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -37,12 +37,12 @@ func stdbReadScoreTable(r bsatn.Reader, v *ScoreTable) error {
 	return nil
 }
 
-func stdbWriteScore(w bsatn.Writer, v *Score) {
+func StdbWriteScore(w bsatn.Writer, v *Score) {
 	w.PutU64(v.Value)
 	w.PutString(v.Label)
 }
 
-func stdbReadScore(r bsatn.Reader, v *Score) error {
+func StdbReadScore(r bsatn.Reader, v *Score) error {
 	var err error
 	if v.Value, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Value: %w", err)
@@ -75,7 +75,7 @@ func (t *stdbScoresTableHandle) resolve() {
 func (t *stdbScoresTableHandle) Insert(row ScoreTable) ScoreTable {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteScoreTable(runtime.GlobalWriter, &row)
+	StdbWriteScoreTable(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("ScoresTable.Insert: %v", err))
@@ -88,7 +88,7 @@ func (t *stdbScoresTableHandle) Delete(row ScoreTable) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteScoreTable(runtime.GlobalWriter, &row)
+	StdbWriteScoreTable(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("ScoresTable.Delete: %v", err))
 	}
@@ -101,7 +101,7 @@ func (t *stdbScoresTableHandle) Scan() (runtime.TableIterator[ScoreTable], error
 		return nil, err
 	}
 	return runtime.NewTableIterator[ScoreTable](iter, func(r bsatn.Reader, v *ScoreTable) error {
-		return stdbReadScoreTable(r, v)
+		return StdbReadScoreTable(r, v)
 	}), nil
 }
 
@@ -137,7 +137,7 @@ func (t *stdbScoresTableHandle) FindById(key uint64) (ScoreTable, bool, error) {
 	}
 	var result ScoreTable
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadScoreTable(r, &result); err != nil {
+	if err := StdbReadScoreTable(r, &result); err != nil {
 		var zero ScoreTable
 		return zero, false, err
 	}
@@ -151,7 +151,7 @@ func (t *stdbScoresTableHandle) UpdateById(row ScoreTable) ScoreTable {
 		panic(fmt.Sprintf("ScoresTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteScoreTable(runtime.GlobalWriter, &row)
+	StdbWriteScoreTable(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("ScoresTable.UpdateById: %v", err))
@@ -180,7 +180,7 @@ func stdbCallReducer(id uint32, ctx reducer.ReducerContext, args []byte) error {
 	case 0: // add_score
 		stdbReader := bsatn.NewZeroCopyReader(args)
 		var score ScoreAlias
-		if err := stdbReadScore(stdbReader, &score); err != nil {
+		if err := StdbReadScore(stdbReader, &score); err != nil {
 			return fmt.Errorf("decode arg 0: %w", err)
 		}
 		AddScore(ctx, score)

@@ -25,12 +25,12 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWritePlayer(w bsatn.Writer, v *Player) {
+func StdbWritePlayer(w bsatn.Writer, v *Player) {
 	w.PutU64(v.Id)
 	w.PutString(v.Name)
 }
 
-func stdbReadPlayer(r bsatn.Reader, v *Player) error {
+func StdbReadPlayer(r bsatn.Reader, v *Player) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -69,7 +69,7 @@ func stdbCallProcedure(id uint32, ctx reducer.ProcedureContext, args []byte) ([]
 		w := bsatn.NewWriter(256)
 		if result != nil {
 			w.PutSumTag(0) // Some
-			stdbWritePlayer(w, &(*result))
+			StdbWritePlayer(w, &(*result))
 		} else {
 			w.PutSumTag(1) // None
 		}

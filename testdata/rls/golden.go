@@ -25,12 +25,12 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteSecret(w bsatn.Writer, v *Secret) {
+func StdbWriteSecret(w bsatn.Writer, v *Secret) {
 	w.PutU64(v.Id)
 	w.PutString(v.Value)
 }
 
-func stdbReadSecret(r bsatn.Reader, v *Secret) error {
+func StdbReadSecret(r bsatn.Reader, v *Secret) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -63,7 +63,7 @@ func (t *stdbSecretTableHandle) resolve() {
 func (t *stdbSecretTableHandle) Insert(row Secret) Secret {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteSecret(runtime.GlobalWriter, &row)
+	StdbWriteSecret(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("SecretTable.Insert: %v", err))
@@ -76,7 +76,7 @@ func (t *stdbSecretTableHandle) Delete(row Secret) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteSecret(runtime.GlobalWriter, &row)
+	StdbWriteSecret(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("SecretTable.Delete: %v", err))
 	}
@@ -89,7 +89,7 @@ func (t *stdbSecretTableHandle) Scan() (runtime.TableIterator[Secret], error) {
 		return nil, err
 	}
 	return runtime.NewTableIterator[Secret](iter, func(r bsatn.Reader, v *Secret) error {
-		return stdbReadSecret(r, v)
+		return StdbReadSecret(r, v)
 	}), nil
 }
 
@@ -125,7 +125,7 @@ func (t *stdbSecretTableHandle) FindById(key uint64) (Secret, bool, error) {
 	}
 	var result Secret
 	r := bsatn.NewZeroCopyReader(data)
-	if err := stdbReadSecret(r, &result); err != nil {
+	if err := StdbReadSecret(r, &result); err != nil {
 		var zero Secret
 		return zero, false, err
 	}
@@ -139,7 +139,7 @@ func (t *stdbSecretTableHandle) UpdateById(row Secret) Secret {
 		panic(fmt.Sprintf("SecretTable.UpdateById: %v", err))
 	}
 	runtime.GlobalWriter.Reset()
-	stdbWriteSecret(runtime.GlobalWriter, &row)
+	StdbWriteSecret(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreUpdateBSATN(t.tableId, indexId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("SecretTable.UpdateById: %v", err))

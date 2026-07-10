@@ -26,27 +26,31 @@ func generateCallReducer(module *AnalyzedModule, w *strings.Builder) {
 
 	// Regular reducers.
 	for _, r := range module.Reducers {
+		call := r.CallName
+		if call == "" {
+			call = r.FuncName
+		}
 		fmt.Fprintf(w, "\tcase %d: // %s\n", r.ID, r.Name)
 		if len(r.Params) == 0 {
 			if r.HasError {
-				fmt.Fprintf(w, "\t\treturn %s(ctx)\n", r.FuncName)
+				fmt.Fprintf(w, "\t\treturn %s(ctx)\n", call)
 			} else {
-				fmt.Fprintf(w, "\t\t%s(ctx)\n", r.FuncName)
+				fmt.Fprintf(w, "\t\t%s(ctx)\n", call)
 				fmt.Fprintf(w, "\t\treturn nil\n")
 			}
 		} else {
 			fmt.Fprintf(w, "\t\tstdbReader := bsatn.NewZeroCopyReader(args)\n")
 			for i, p := range r.Params {
-				writeParamDecode(w, "\t\t", p, i, "stdbReader", "")
+				writeParamDecode(w, "\t\t", module, p, i, "stdbReader", "")
 			}
 			callArgs := "ctx"
 			for _, p := range r.Params {
 				callArgs += ", " + p.Name
 			}
 			if r.HasError {
-				fmt.Fprintf(w, "\t\treturn %s(%s)\n", r.FuncName, callArgs)
+				fmt.Fprintf(w, "\t\treturn %s(%s)\n", call, callArgs)
 			} else {
-				fmt.Fprintf(w, "\t\t%s(%s)\n", r.FuncName, callArgs)
+				fmt.Fprintf(w, "\t\t%s(%s)\n", call, callArgs)
 				fmt.Fprintf(w, "\t\treturn nil\n")
 			}
 		}
@@ -54,8 +58,12 @@ func generateCallReducer(module *AnalyzedModule, w *strings.Builder) {
 
 	// Lifecycle reducers.
 	for _, lc := range module.Lifecycle {
+		call := lc.CallName
+		if call == "" {
+			call = lc.FuncName
+		}
 		fmt.Fprintf(w, "\tcase %d: // %s (%s)\n", lc.ID, lc.FuncName, lifecycleName(lc.Kind))
-		fmt.Fprintf(w, "\t\t%s(ctx)\n", lc.FuncName)
+		fmt.Fprintf(w, "\t\t%s(ctx)\n", call)
 		fmt.Fprintf(w, "\t\treturn nil\n")
 	}
 
@@ -71,33 +79,37 @@ func generateCallProcedure(module *AnalyzedModule, w *strings.Builder) {
 	fmt.Fprintf(w, "\tswitch id {\n")
 
 	for _, p := range module.Procedures {
+		call := p.CallName
+		if call == "" {
+			call = p.FuncName
+		}
 		fmt.Fprintf(w, "\tcase %d: // %s\n", p.ID, p.Name)
 		if len(p.Params) == 0 && p.ReturnType == nil {
-			fmt.Fprintf(w, "\t\t%s(ctx)\n", p.FuncName)
+			fmt.Fprintf(w, "\t\t%s(ctx)\n", call)
 			fmt.Fprintf(w, "\t\tw := bsatn.NewWriter(4)\n")
 			fmt.Fprintf(w, "\t\treturn w.Bytes(), nil\n")
 		} else if len(p.Params) == 0 && p.ReturnType != nil {
-			fmt.Fprintf(w, "\t\tresult := %s(ctx)\n", p.FuncName)
+			fmt.Fprintf(w, "\t\tresult := %s(ctx)\n", call)
 			fmt.Fprintf(w, "\t\tw := bsatn.NewWriter(256)\n")
-			writeReturnEncode(w, "\t\t", *p.ReturnType, "result", p.ReturnGoType)
+			writeReturnEncode(w, "\t\t", module, *p.ReturnType, "result", p.ReturnGoType)
 			fmt.Fprintf(w, "\t\treturn w.Bytes(), nil\n")
 		} else {
 			fmt.Fprintf(w, "\t\tstdbReader := bsatn.NewZeroCopyReader(args)\n")
 			for i, param := range p.Params {
-				writeParamDecode(w, "\t\t", param, i, "stdbReader", "nil, ")
+				writeParamDecode(w, "\t\t", module, param, i, "stdbReader", "nil, ")
 			}
 			callArgs := "ctx"
 			for _, param := range p.Params {
 				callArgs += ", " + param.Name
 			}
 			if p.ReturnType == nil {
-				fmt.Fprintf(w, "\t\t%s(%s)\n", p.FuncName, callArgs)
+				fmt.Fprintf(w, "\t\t%s(%s)\n", call, callArgs)
 				fmt.Fprintf(w, "\t\tw := bsatn.NewWriter(4)\n")
 				fmt.Fprintf(w, "\t\treturn w.Bytes(), nil\n")
 			} else {
-				fmt.Fprintf(w, "\t\tresult := %s(%s)\n", p.FuncName, callArgs)
+				fmt.Fprintf(w, "\t\tresult := %s(%s)\n", call, callArgs)
 				fmt.Fprintf(w, "\t\tw := bsatn.NewWriter(256)\n")
-				writeReturnEncode(w, "\t\t", *p.ReturnType, "result", p.ReturnGoType)
+				writeReturnEncode(w, "\t\t", module, *p.ReturnType, "result", p.ReturnGoType)
 				fmt.Fprintf(w, "\t\treturn w.Bytes(), nil\n")
 			}
 		}
@@ -119,21 +131,25 @@ func generateCallView(module *AnalyzedModule, w *strings.Builder) {
 		if v.IsAnonymous {
 			continue
 		}
+		call := v.CallName
+		if call == "" {
+			call = v.FuncName
+		}
 		fmt.Fprintf(w, "\tcase %d: // %s\n", v.ID, v.Name)
 		if len(v.Params) > 0 {
 			fmt.Fprintf(w, "\t\tstdbReader := bsatn.NewZeroCopyReader(args)\n")
 			for i, param := range v.Params {
-				writeParamDecode(w, "\t\t", param, i, "stdbReader", "nil, ")
+				writeParamDecode(w, "\t\t", module, param, i, "stdbReader", "nil, ")
 			}
 		}
 		callArgs := "ctx"
 		for _, param := range v.Params {
 			callArgs += ", " + param.Name
 		}
-		fmt.Fprintf(w, "\t\tresult := %s(%s)\n", v.FuncName, callArgs)
+		fmt.Fprintf(w, "\t\tresult := %s(%s)\n", call, callArgs)
 		fmt.Fprintf(w, "\t\tw := bsatn.NewWriter(256)\n")
 		fmt.Fprintf(w, "\t\tw.PutSumTag(0) // ViewResultHeader::RowData\n")
-		writeViewResultEncode(w, "\t\t", v.ReturnType, v.ReturnGoType, "result")
+		writeViewResultEncode(w, "\t\t", module, v.ReturnType, v.ReturnGoType, "result")
 		fmt.Fprintf(w, "\t\treturn w.Bytes(), nil\n")
 	}
 
@@ -153,21 +169,25 @@ func generateCallViewAnon(module *AnalyzedModule, w *strings.Builder) {
 		if !v.IsAnonymous {
 			continue
 		}
+		call := v.CallName
+		if call == "" {
+			call = v.FuncName
+		}
 		fmt.Fprintf(w, "\tcase %d: // %s\n", v.ID, v.Name)
 		if len(v.Params) > 0 {
 			fmt.Fprintf(w, "\t\tstdbReader := bsatn.NewZeroCopyReader(args)\n")
 			for i, param := range v.Params {
-				writeParamDecode(w, "\t\t", param, i, "stdbReader", "nil, ")
+				writeParamDecode(w, "\t\t", module, param, i, "stdbReader", "nil, ")
 			}
 		}
 		callArgs := "ctx"
 		for _, param := range v.Params {
 			callArgs += ", " + param.Name
 		}
-		fmt.Fprintf(w, "\t\tresult := %s(%s)\n", v.FuncName, callArgs)
+		fmt.Fprintf(w, "\t\tresult := %s(%s)\n", call, callArgs)
 		fmt.Fprintf(w, "\t\tw := bsatn.NewWriter(256)\n")
 		fmt.Fprintf(w, "\t\tw.PutSumTag(0) // ViewResultHeader::RowData\n")
-		writeViewResultEncode(w, "\t\t", v.ReturnType, v.ReturnGoType, "result")
+		writeViewResultEncode(w, "\t\t", module, v.ReturnType, v.ReturnGoType, "result")
 		fmt.Fprintf(w, "\t\treturn w.Bytes(), nil\n")
 	}
 
@@ -177,11 +197,41 @@ func generateCallViewAnon(module *AnalyzedModule, w *strings.Builder) {
 	fmt.Fprintf(w, "}\n\n")
 }
 
+// codecCall returns the Go expression for StdbReadX / StdbWriteX for a named
+// product/sum type. In multi-package modules, types owned by another package are
+// reached as schema.StdbReadPlayer (exported codecs live next to the type).
+func codecCall(module *AnalyzedModule, typeName, which string) string {
+	fn := "Stdb" + which + typeName
+	if module == nil || !module.MultiPackage || typeName == "" {
+		return fn
+	}
+	t := module.Types[typeName]
+	if t == nil || t.RelDir == "" {
+		// Root-owned type: codec is in the root package (tables file or module package).
+		return fn
+	}
+	alias := t.Package
+	if alias == "" {
+		alias = pathBase(t.ImportPath)
+	}
+	return alias + "." + fn
+}
+
 // writeParamDecode writes code to decode a function parameter from BSATN.
 // readerName is the variable name of the bsatn.Reader (e.g., "stdbReader").
 // errRetPrefix is prepended before fmt.Errorf in return statements (e.g., "" for reducers, "nil, " for procedures/views).
-func writeParamDecode(w *strings.Builder, indent string, param AnalyzedParam, idx int, readerName string, errRetPrefix string) {
+func writeParamDecode(w *strings.Builder, indent string, module *AnalyzedModule, param AnalyzedParam, idx int, readerName string, errRetPrefix string) {
 	goType := param.GoType
+	// Qualify product types for the root package when needed.
+	if module != nil && module.MultiPackage && param.AlgType.Kind == AlgKindRef {
+		if t := module.Types[param.AlgType.TypeName]; t != nil && t.RelDir != "" {
+			// Prefer the type's package-qualified form when the param was written
+			// with a bare name (same-package reducer) but we're decoding in root.
+			if !strings.Contains(goType, ".") {
+				goType = qualifyTypeName(param.AlgType.TypeName, t.Package, t.ImportPath, false, true)
+			}
+		}
+	}
 	fmt.Fprintf(w, "%svar %s %s\n", indent, param.Name, goType)
 
 	switch param.AlgType.Kind {
@@ -232,7 +282,8 @@ func writeParamDecode(w *strings.Builder, indent string, param AnalyzedParam, id
 	case AlgKindBytes:
 		fmt.Fprintf(w, "%s{ v, err := bsatn.ReadByteArray(%s); if err != nil { return %sfmt.Errorf(\"decode arg %d: %%w\", err) }; %s = v }\n", indent, readerName, errRetPrefix, idx, param.Name)
 	case AlgKindRef:
-		fmt.Fprintf(w, "%sif err := stdbRead%s(%s, &%s); err != nil { return %sfmt.Errorf(\"decode arg %d: %%w\", err) }\n", indent, param.AlgType.TypeName, readerName, param.Name, errRetPrefix, idx)
+		readFn := codecCall(module, param.AlgType.TypeName, "Read")
+		fmt.Fprintf(w, "%sif err := %s(%s, &%s); err != nil { return %sfmt.Errorf(\"decode arg %d: %%w\", err) }\n", indent, readFn, readerName, param.Name, errRetPrefix, idx)
 	case AlgKindArray, AlgKindOption:
 		// For complex composite types, wrap writeFieldDecode in an anonymous function.
 		// writeFieldDecode generates code that uses 'r' as the reader and 'err' as the error variable,
@@ -252,17 +303,18 @@ func writeParamDecode(w *strings.Builder, indent string, param AnalyzedParam, id
 }
 
 // writeReturnEncode writes code to encode a procedure return value.
-func writeReturnEncode(w *strings.Builder, indent string, algType AlgType, expr string, goType string) {
+func writeReturnEncode(w *strings.Builder, indent string, module *AnalyzedModule, algType AlgType, expr string, goType string) {
 	switch algType.Kind {
 	case AlgKindRef:
-		fmt.Fprintf(w, "%sstdbWrite%s(w, &%s)\n", indent, algType.TypeName, expr)
+		writeFn := codecCall(module, algType.TypeName, "Write")
+		fmt.Fprintf(w, "%s%s(w, &%s)\n", indent, writeFn, expr)
 	default:
 		writeFieldEncode(w, indent, algType, expr, "result")
 	}
 }
 
 // writeViewResultEncode writes code to encode a view result as Vec<RowType>.
-func writeViewResultEncode(w *strings.Builder, indent string, algType AlgType, goType string, expr string) {
+func writeViewResultEncode(w *strings.Builder, indent string, module *AnalyzedModule, algType AlgType, goType string, expr string) {
 	// Determine if the return type is a pointer (*T -> Option), slice ([]T -> Vec), or single (T).
 	if strings.HasPrefix(goType, "*") {
 		// Option<T>: encode as array of 0 or 1 elements.
@@ -270,7 +322,7 @@ func writeViewResultEncode(w *strings.Builder, indent string, algType AlgType, g
 		fmt.Fprintf(w, "%s\tw.PutArrayLen(1)\n", indent)
 		innerType := goType[1:]
 		if algType.ElemType != nil {
-			writeReturnEncode(w, indent+"\t", *algType.ElemType, "(*"+expr+")", innerType)
+			writeReturnEncode(w, indent+"\t", module, *algType.ElemType, "(*"+expr+")", innerType)
 		}
 		fmt.Fprintf(w, "%s} else {\n", indent)
 		fmt.Fprintf(w, "%s\tw.PutArrayLen(0)\n", indent)
@@ -283,14 +335,14 @@ func writeViewResultEncode(w *strings.Builder, indent string, algType AlgType, g
 		fmt.Fprintf(w, "%s\tw.PutArrayLen(uint32(len(%s)))\n", indent, expr)
 		fmt.Fprintf(w, "%s\tfor i := range %s {\n", indent, expr)
 		if algType.ElemType != nil {
-			writeReturnEncode(w, indent+"\t\t", *algType.ElemType, expr+"[i]", goType[2:])
+			writeReturnEncode(w, indent+"\t\t", module, *algType.ElemType, expr+"[i]", goType[2:])
 		}
 		fmt.Fprintf(w, "%s\t}\n", indent)
 		fmt.Fprintf(w, "%s}\n", indent)
 	} else {
 		// Single value: encode as array of 1 element.
 		fmt.Fprintf(w, "%sw.PutArrayLen(1)\n", indent)
-		writeReturnEncode(w, indent, algType, expr, goType)
+		writeReturnEncode(w, indent, module, algType, expr, goType)
 	}
 }
 

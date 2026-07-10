@@ -467,14 +467,43 @@ Source files → parseDirectory() → ParsedModule
 
 ## File Filtering
 
-The parser processes `.go` files in the target directory with these exclusions:
+The parser walks the module root **recursively** (nested packages) and
+processes `.go` files with these exclusions:
 
 | Pattern | Reason |
 |---------|--------|
 | `main.go` | Contains the entry point, not module declarations |
 | `*_test.go` | Test files |
-| `*_generated.go` | Previously generated files (avoids circular processing) |
-| Directories | Not recursed into |
+| `*_generated.go`, `stdb_*_generated.go` | Previously generated files (avoids circular processing) |
+| `vendor/`, `testdata/`, `.git/`, … | Not source packages |
+
+### Multi-package modules
+
+`//stdb:` tables and reducers may live in subdirectories (each dir is its own
+Go package). Rules:
+
+1. **Root package is `main`** (WASM entry). Nested dirs must **not** be `package main`.
+2. **Table types** should live in an importable package (e.g. `schema/`) so feature
+   packages can use generated `*Table` accessors without importing `main`.
+3. **Reducers** in non-root packages must be **exported** (`MeleeAttack`, not `meleeAttack`).
+4. Codegen emits:
+   - `schema/stdb_tables_generated.go` — **exported** `StdbReadX` / `StdbWriteX` + table accessors
+   - `stdb_module_generated.go` — root dispatch / moduledef / `init`, calling e.g. `combat.MeleeAttack`
+     and decoding custom struct args via `schema.StdbReadAttackReq(...)`
+
+Flat single-package modules still emit a single `stdb_generated.go` as before
+(with the same exported `StdbRead*` / `StdbWrite*` names).
+
+### Client generation
+
+`stdb-go generate client` is **unchanged**: it fetches the module schema from a
+running SpacetimeDB server (not from Go source layout). Nested server packages do
+not affect client bindings — only the published module schema does. After
+publishing a multi-package module, regenerate clients as usual:
+
+```bash
+stdb-go generate client -d my-database --out-dir=./eq-bindings
+```
 
 ## Development
 

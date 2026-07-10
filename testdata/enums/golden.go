@@ -25,11 +25,11 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteColor(w bsatn.Writer, v *Color) {
+func StdbWriteColor(w bsatn.Writer, v *Color) {
 	w.PutU8(uint8(*v))
 }
 
-func stdbReadColor(r bsatn.Reader, v *Color) error {
+func StdbReadColor(r bsatn.Reader, v *Color) error {
 	tag, err := r.GetU8()
 	if err != nil {
 		return fmt.Errorf("decode Color: %w", err)
@@ -41,11 +41,11 @@ func stdbReadColor(r bsatn.Reader, v *Color) error {
 	return nil
 }
 
-func stdbWriteDirection(w bsatn.Writer, v *Direction) {
+func StdbWriteDirection(w bsatn.Writer, v *Direction) {
 	w.PutU8(uint8(*v))
 }
 
-func stdbReadDirection(r bsatn.Reader, v *Direction) error {
+func StdbReadDirection(r bsatn.Reader, v *Direction) error {
 	tag, err := r.GetU8()
 	if err != nil {
 		return fmt.Errorf("decode Direction: %w", err)

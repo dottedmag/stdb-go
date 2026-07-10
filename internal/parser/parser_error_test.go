@@ -41,7 +41,7 @@ func TestParseError_EmptyDir(t *testing.T) {
 func TestParseError_NonExistentDir(t *testing.T) {
 	_, err := parser.ParseDirectory("/tmp/nonexistent-stdb-gen-test-dir-that-does-not-exist")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "read dir")
+	assert.Contains(t, err.Error(), "walk:")
 }
 
 func TestParseError_InvalidMultiColIndex(t *testing.T) {

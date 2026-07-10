@@ -675,7 +675,7 @@ type FromMain struct {
 	assert.Equal(t, "ok", parsed.Tables[0].Name)
 }
 
-func TestParseSkipsDirectories(t *testing.T) {
+func TestParseIncludesNestedPackages(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "types.go", `package main
 
@@ -684,7 +684,7 @@ type Ok struct {
 	Id uint64
 }
 `)
-	// Create a subdirectory — should not cause errors.
+	// Nested package contributes //stdb: tables (multi-package modules).
 	require.NoError(t, os.MkdirAll(filepath.Join(dir, "subdir"), 0755))
 	writeFile(t, filepath.Join(dir, "subdir"), "nested.go", `package subdir
 
@@ -695,8 +695,38 @@ type Nested struct {
 `)
 	parsed, err := parser.ParseDirectory(dir)
 	require.NoError(t, err)
-	require.Len(t, parsed.Tables, 1)
-	assert.Equal(t, "ok", parsed.Tables[0].Name)
+	require.Len(t, parsed.Tables, 2)
+	assert.True(t, parsed.MultiPackage)
+	names := map[string]bool{}
+	for _, tb := range parsed.Tables {
+		names[tb.Name] = true
+	}
+	assert.True(t, names["ok"])
+	assert.True(t, names["nested"])
+}
+
+func TestParseNestedUnexportedReducerErrors(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "types.go", `package main
+
+//stdb:table name=ok access=public
+type Ok struct {
+	Id uint64
+}
+`)
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "combat"), 0755))
+	writeFile(t, filepath.Join(dir, "combat"), "attack.go", `package combat
+
+import "go.digitalxero.dev/spacetimedb-server/reducer"
+
+//stdb:reducer
+func meleeAttack(ctx reducer.ReducerContext) error {
+	return nil
+}
+`)
+	_, err := parser.ParseDirectory(dir)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must be exported")
 }
 
 // ──────────────────────────────────────────────────────────
@@ -783,7 +813,8 @@ func TestParseEmptyDirectory(t *testing.T) {
 	assert.Empty(t, parsed.RLS)
 	assert.NotNil(t, parsed.Structs)
 	assert.NotNil(t, parsed.TypeAliases)
-	assert.Equal(t, "", parsed.PackageName)
+	// Empty modules default to package main (WASM entry package).
+	assert.Equal(t, "main", parsed.PackageName)
 }
 
 func TestParseUnexportedFieldsSkipped(t *testing.T) {

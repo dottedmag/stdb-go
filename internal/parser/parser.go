@@ -7,35 +7,65 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"unicode"
 )
 
 // ParsedModule is the intermediate representation produced by parsing.
 type ParsedModule struct {
+	// PackageName is the Go package name of the module root (usually "main").
 	PackageName string
-	Tables      []ParsedTable
-	Reducers    []ParsedReducer
-	Lifecycle   []ParsedLifecycle
-	Procedures  []ParsedProcedure
-	Views       []ParsedView
-	SumTypes    []ParsedSumType
-	Enums       []ParsedEnum
-	Variants    []ParsedVariant
-	Schedules   []ParsedSchedule
-	RLS         []string
+	// ModulePath is the go.mod module path (empty if go.mod is missing).
+	ModulePath string
+	// RootDir is the absolute path to the module root that was parsed.
+	RootDir string
+	// MultiPackage is true when //stdb: declarations span more than one Go package.
+	MultiPackage bool
 
-	// All struct definitions found in the package (for type resolution).
+	Tables     []ParsedTable
+	Reducers   []ParsedReducer
+	Lifecycle  []ParsedLifecycle
+	Procedures []ParsedProcedure
+	Views      []ParsedView
+	SumTypes   []ParsedSumType
+	Enums      []ParsedEnum
+	Variants   []ParsedVariant
+	Schedules  []ParsedSchedule
+	RLS        []string
+
+	// All struct definitions found across packages (for type resolution).
+	// Keyed by unqualified Go name; multi-package modules reject name collisions.
 	Structs map[string]*ParsedStruct
 
 	// Type aliases: name → underlying type name (e.g., TestAlias → TestA).
 	TypeAliases map[string]string
+
+	// Packages lists every Go package discovered under RootDir that contributed
+	// source (even if it has no //stdb: directives). Used for import generation.
+	Packages []ParsedPackage
+}
+
+// ParsedPackage describes one Go package under the module root.
+type ParsedPackage struct {
+	// Name is the package clause (e.g. "schema", "main").
+	Name string
+	// ImportPath is the full import path (modulePath + "/" + relDir), or
+	// ModulePath alone for the root package.
+	ImportPath string
+	// RelDir is the path relative to RootDir ("" for root).
+	RelDir string
+	// IsRoot is true for the package that lives in RootDir.
+	IsRoot bool
 }
 
 // ParsedStruct represents a struct type definition found in the package.
 type ParsedStruct struct {
-	Name   string
-	Fields []ParsedField
+	Name       string
+	Fields     []ParsedField
+	Package    string // package clause name
+	ImportPath string // full import path of defining package
+	RelDir     string
 }
 
 // ParsedTable represents a table declared via //stdb:table directive.
@@ -46,6 +76,9 @@ type ParsedTable struct {
 	StructName   string // Go struct name
 	Fields       []ParsedField
 	ExtraIndexes []ParsedMultiColIndex
+	Package      string
+	ImportPath   string
+	RelDir       string
 }
 
 // ParsedMultiColIndex represents a multi-column BTree index.
@@ -69,10 +102,15 @@ type ParsedField struct {
 
 // ParsedReducer represents a reducer declared via //stdb:reducer directive.
 type ParsedReducer struct {
-	Name     string        // from name= or auto snake_case of FuncName
-	FuncName string        // Go function name from AST
-	Params   []ParsedParam // after context param, names from Go func signature
-	HasError bool          // returns error
+	Name       string        // from name= or auto snake_case of FuncName
+	FuncName   string        // Go function name from AST
+	Params     []ParsedParam // after context param, names from Go func signature
+	HasError   bool          // returns error
+	Package    string
+	ImportPath string
+	RelDir     string
+	// Exported is true when FuncName is exported (required for non-root packages).
+	Exported bool
 }
 
 // ParsedParam is a reducer/procedure/view parameter.
@@ -83,8 +121,12 @@ type ParsedParam struct {
 
 // ParsedLifecycle represents a lifecycle reducer declared via //stdb:init, //stdb:connect, or //stdb:disconnect.
 type ParsedLifecycle struct {
-	Kind     string // "init", "connect", or "disconnect"
-	FuncName string // Go function name from AST
+	Kind       string // "init", "connect", or "disconnect"
+	FuncName   string // Go function name from AST
+	Package    string
+	ImportPath string
+	RelDir     string
+	Exported   bool
 }
 
 // ParsedProcedure represents a procedure declared via //stdb:procedure directive.
@@ -93,6 +135,10 @@ type ParsedProcedure struct {
 	FuncName   string
 	Params     []ParsedParam
 	ReturnType string // Go type of return value, empty if void
+	Package    string
+	ImportPath string
+	RelDir     string
+	Exported   bool
 }
 
 // ParsedView represents a view declared via //stdb:view directive.
@@ -103,6 +149,10 @@ type ParsedView struct {
 	IsAnonymous bool
 	Params      []ParsedParam
 	ReturnType  string // Go type string (e.g., "*Player", "[]Player")
+	Package     string
+	ImportPath  string
+	RelDir      string
+	Exported    bool
 }
 
 // ParsedSumType represents a sum type declared via //stdb:sumtype directive.
@@ -132,58 +182,316 @@ type ParsedSchedule struct {
 	FunctionName string
 }
 
-// ParseDirectory parses all .go files in the directory and extracts //stdb: directives.
-func ParseDirectory(dir string) (*ParsedModule, error) {
-	entries, err := os.ReadDir(dir)
+// skipDirName reports directories that must not be walked when discovering packages.
+func skipDirName(name string) bool {
+	switch name {
+	case "vendor", "testdata", "node_modules", ".git", ".hg", ".svn":
+		return true
+	}
+	return strings.HasPrefix(name, ".")
+}
+
+// isSkippableGoFile reports .go files that are never sources of //stdb: directives.
+func isSkippableGoFile(name string) bool {
+	if !strings.HasSuffix(name, ".go") {
+		return true
+	}
+	if name == "main.go" {
+		return true
+	}
+	if strings.HasSuffix(name, "_test.go") {
+		return true
+	}
+	// Generated artifacts (legacy and dual-output names).
+	if strings.HasSuffix(name, "_generated.go") ||
+		name == "stdb_generated.go" ||
+		name == "stdb_module_generated.go" ||
+		name == "stdb_tables_generated.go" {
+		return true
+	}
+	return false
+}
+
+// readModulePath returns the module path from go.mod in dir, or "".
+func readModulePath(dir string) string {
+	data, err := os.ReadFile(filepath.Join(dir, "go.mod"))
 	if err != nil {
-		return nil, fmt.Errorf("read dir: %w", err)
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module "))
+		}
+	}
+	return ""
+}
+
+// importPathFor returns the full import path for a package at relDir under root.
+func importPathFor(modulePath, relDir string) string {
+	relDir = filepath.ToSlash(relDir)
+	if modulePath == "" {
+		if relDir == "" || relDir == "." {
+			return ""
+		}
+		return relDir
+	}
+	if relDir == "" || relDir == "." {
+		return modulePath
+	}
+	return modulePath + "/" + relDir
+}
+
+// ParseDirectory parses the module rooted at dir. It walks nested packages so
+// //stdb: directives may live in subdirectories (each directory is its own Go
+// package). Flat single-package modules behave as before.
+//
+// ParseDirectory is the public entry point used by generate/build.
+func ParseDirectory(dir string) (*ParsedModule, error) {
+	return ParseModule(dir)
+}
+
+// ParseModule walks dir recursively and extracts //stdb: directives from every
+// Go package under the module root.
+func ParseModule(dir string) (*ParsedModule, error) {
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, fmt.Errorf("abs dir: %w", err)
 	}
 
+	modulePath := readModulePath(absDir)
 	fset := token.NewFileSet()
 	module := &ParsedModule{
+		ModulePath:  modulePath,
+		RootDir:     absDir,
 		Structs:     make(map[string]*ParsedStruct),
 		TypeAliases: make(map[string]string),
 	}
 
-	for _, entry := range entries {
-		name := entry.Name()
-		// Skip generated files, test files, directories
-		if entry.IsDir() ||
-			!strings.HasSuffix(name, ".go") ||
-			strings.HasSuffix(name, "_generated.go") ||
-			strings.HasSuffix(name, "_test.go") ||
-			name == "main.go" {
-			continue
-		}
+	// Collect packages: relDir → package clause name (first file wins).
+	type pkgInfo struct {
+		name   string
+		relDir string
+		files  []string
+	}
+	packages := map[string]*pkgInfo{} // key = relDir
 
-		filePath := filepath.Join(dir, name)
-		f, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	err = filepath.WalkDir(absDir, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			if path == absDir {
+				return nil
+			}
+			if skipDirName(d.Name()) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		name := d.Name()
+		if isSkippableGoFile(name) {
+			return nil
+		}
+		rel, err := filepath.Rel(absDir, path)
 		if err != nil {
-			return nil, fmt.Errorf("parse %s: %w", name, err)
+			return err
+		}
+		relDir := filepath.Dir(rel)
+		if relDir == "." {
+			relDir = ""
+		}
+		// Ensure package entry exists (package name filled after parse).
+		pi, ok := packages[relDir]
+		if !ok {
+			pi = &pkgInfo{relDir: relDir}
+			packages[relDir] = pi
+		}
+		pi.files = append(pi.files, path)
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walk: %w", err)
+	}
+
+	// Ensure root package is processed even if only main.go exists (no stdb files).
+	if _, ok := packages[""]; !ok {
+		packages[""] = &pkgInfo{relDir: "", name: "main"}
+	}
+
+	// Stable package order: root first, then sorted relDirs.
+	relDirs := make([]string, 0, len(packages))
+	for rel := range packages {
+		relDirs = append(relDirs, rel)
+	}
+	sort.Slice(relDirs, func(i, j int) bool {
+		if relDirs[i] == "" {
+			return true
+		}
+		if relDirs[j] == "" {
+			return false
+		}
+		return relDirs[i] < relDirs[j]
+	})
+
+	pkgSet := map[string]bool{} // import paths that define //stdb: symbols
+	for _, relDir := range relDirs {
+		pi := packages[relDir]
+		impPath := importPathFor(modulePath, relDir)
+		isRoot := relDir == ""
+
+		for _, filePath := range pi.files {
+			f, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+			if err != nil {
+				return nil, fmt.Errorf("parse %s: %w", filePath, err)
+			}
+			if pi.name == "" {
+				pi.name = f.Name.Name
+			} else if f.Name.Name != pi.name {
+				return nil, fmt.Errorf("package name mismatch in %s: got %q want %q", filePath, f.Name.Name, pi.name)
+			}
+			if isRoot && module.PackageName == "" {
+				module.PackageName = f.Name.Name
+			}
+			// Nested directory must not be package main (orphan main package).
+			if !isRoot && f.Name.Name == "main" {
+				return nil, fmt.Errorf("%s: nested package must not be named main (got package main in %s)", filePath, relDir)
+			}
+
+			ctx := fileCtx{
+				packageName: f.Name.Name,
+				importPath:  impPath,
+				relDir:      relDir,
+				isRoot:      isRoot,
+			}
+			if err := processFile(f, module, ctx); err != nil {
+				return nil, fmt.Errorf("process %s: %w", filePath, err)
+			}
 		}
 
-		if module.PackageName == "" {
-			module.PackageName = f.Name.Name
+		if pi.name == "" {
+			// Directory with no parseable files (only skipped) — ignore.
+			if len(pi.files) == 0 {
+				continue
+			}
+			pi.name = "main"
+		}
+		if isRoot && module.PackageName == "" {
+			module.PackageName = pi.name
 		}
 
-		if err := processFile(f, module); err != nil {
-			return nil, fmt.Errorf("process %s: %w", name, err)
+		module.Packages = append(module.Packages, ParsedPackage{
+			Name:       pi.name,
+			ImportPath: impPath,
+			RelDir:     relDir,
+			IsRoot:     isRoot,
+		})
+		pkgSet[impPath] = true
+	}
+
+	if module.PackageName == "" {
+		module.PackageName = "main"
+	}
+
+	// MultiPackage if any //stdb: table/reducer/lifecycle lives outside root.
+	for _, t := range module.Tables {
+		if t.RelDir != "" {
+			module.MultiPackage = true
+			break
 		}
+	}
+	if !module.MultiPackage {
+		for _, r := range module.Reducers {
+			if r.RelDir != "" {
+				module.MultiPackage = true
+				break
+			}
+		}
+	}
+	if !module.MultiPackage {
+		for _, lc := range module.Lifecycle {
+			if lc.RelDir != "" {
+				module.MultiPackage = true
+				break
+			}
+		}
+	}
+	if !module.MultiPackage {
+		for _, p := range module.Procedures {
+			if p.RelDir != "" {
+				module.MultiPackage = true
+				break
+			}
+		}
+	}
+	if !module.MultiPackage {
+		for _, v := range module.Views {
+			if v.RelDir != "" {
+				module.MultiPackage = true
+				break
+			}
+		}
+	}
+
+	// Validate non-root reducers/lifecycle/procedures/views are exported.
+	if err := validateExports(module); err != nil {
+		return nil, err
 	}
 
 	return module, nil
 }
 
+func validateExports(module *ParsedModule) error {
+	check := func(kind, name, pkg string, exported bool, relDir string) error {
+		if relDir == "" {
+			return nil
+		}
+		if !exported {
+			return fmt.Errorf("%s %q in package %q (%s): must be exported (capitalized) so the root module can call it", kind, name, pkg, relDir)
+		}
+		return nil
+	}
+	for _, r := range module.Reducers {
+		if err := check("reducer", r.FuncName, r.Package, r.Exported, r.RelDir); err != nil {
+			return err
+		}
+	}
+	for _, lc := range module.Lifecycle {
+		if err := check("lifecycle", lc.FuncName, lc.Package, lc.Exported, lc.RelDir); err != nil {
+			return err
+		}
+	}
+	for _, p := range module.Procedures {
+		if err := check("procedure", p.FuncName, p.Package, p.Exported, p.RelDir); err != nil {
+			return err
+		}
+	}
+	for _, v := range module.Views {
+		if err := check("view", v.FuncName, v.Package, v.Exported, v.RelDir); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// fileCtx is the package context for one source file.
+type fileCtx struct {
+	packageName string
+	importPath  string
+	relDir      string
+	isRoot      bool
+}
+
 // processFile extracts //stdb: directives from a parsed Go file.
-func processFile(f *ast.File, module *ParsedModule) error {
+func processFile(f *ast.File, module *ParsedModule, ctx fileCtx) error {
 	for _, decl := range f.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
-			if err := processGenDecl(d, f, module); err != nil {
+			if err := processGenDecl(d, f, module, ctx); err != nil {
 				return err
 			}
 		case *ast.FuncDecl:
-			if err := processFuncDecl(d, f, module); err != nil {
+			if err := processFuncDecl(d, f, module, ctx); err != nil {
 				return err
 			}
 		}
@@ -192,7 +500,7 @@ func processFile(f *ast.File, module *ParsedModule) error {
 }
 
 // processGenDecl processes type/const declarations for //stdb: directives.
-func processGenDecl(d *ast.GenDecl, f *ast.File, module *ParsedModule) error {
+func processGenDecl(d *ast.GenDecl, f *ast.File, module *ParsedModule, ctx fileCtx) error {
 	for _, spec := range d.Specs {
 		ts, ok := spec.(*ast.TypeSpec)
 		if !ok {
@@ -217,9 +525,19 @@ func processGenDecl(d *ast.GenDecl, f *ast.File, module *ParsedModule) error {
 		// If this is a struct type, always parse its fields for type resolution.
 		if st, ok := ts.Type.(*ast.StructType); ok {
 			fields := parseStructFields(st)
+			if prev, exists := module.Structs[ts.Name.Name]; exists {
+				// Same package redefinition is last-wins (as before); cross-package is an error.
+				if prev.ImportPath != ctx.importPath && prev.RelDir != ctx.relDir {
+					return fmt.Errorf("struct %q defined in both package %q and %q (type names must be unique across the module)",
+						ts.Name.Name, prev.Package, ctx.packageName)
+				}
+			}
 			module.Structs[ts.Name.Name] = &ParsedStruct{
-				Name:   ts.Name.Name,
-				Fields: fields,
+				Name:       ts.Name.Name,
+				Fields:     fields,
+				Package:    ctx.packageName,
+				ImportPath: ctx.importPath,
+				RelDir:     ctx.relDir,
 			}
 
 			// Process //stdb:table directives (can have multiple).
@@ -232,6 +550,9 @@ func processGenDecl(d *ast.GenDecl, f *ast.File, module *ParsedModule) error {
 						IsEvent:    dir.Params["event"] == "true",
 						StructName: ts.Name.Name,
 						Fields:     fields,
+						Package:    ctx.packageName,
+						ImportPath: ctx.importPath,
+						RelDir:     ctx.relDir,
 					}
 					if table.Access == "" {
 						table.Access = "private"
@@ -296,7 +617,7 @@ func processGenDecl(d *ast.GenDecl, f *ast.File, module *ParsedModule) error {
 }
 
 // processFuncDecl processes function declarations for //stdb: directives.
-func processFuncDecl(d *ast.FuncDecl, f *ast.File, module *ParsedModule) error {
+func processFuncDecl(d *ast.FuncDecl, f *ast.File, module *ParsedModule, ctx fileCtx) error {
 	if d.Doc == nil {
 		return nil
 	}
@@ -311,12 +632,18 @@ func processFuncDecl(d *ast.FuncDecl, f *ast.File, module *ParsedModule) error {
 		return nil
 	}
 
+	exported := d.Name.IsExported()
+
 	for _, dir := range directives {
 		switch dir.Kind {
 		case "reducer":
 			r := ParsedReducer{
-				FuncName: d.Name.Name,
-				Name:     dir.Params["name"],
+				FuncName:   d.Name.Name,
+				Name:       dir.Params["name"],
+				Package:    ctx.packageName,
+				ImportPath: ctx.importPath,
+				RelDir:     ctx.relDir,
+				Exported:   exported,
 			}
 			if r.Name == "" {
 				r.Name = toSnakeCase(d.Name.Name)
@@ -327,26 +654,42 @@ func processFuncDecl(d *ast.FuncDecl, f *ast.File, module *ParsedModule) error {
 
 		case "init":
 			module.Lifecycle = append(module.Lifecycle, ParsedLifecycle{
-				Kind:     "init",
-				FuncName: d.Name.Name,
+				Kind:       "init",
+				FuncName:   d.Name.Name,
+				Package:    ctx.packageName,
+				ImportPath: ctx.importPath,
+				RelDir:     ctx.relDir,
+				Exported:   exported,
 			})
 
 		case "connect":
 			module.Lifecycle = append(module.Lifecycle, ParsedLifecycle{
-				Kind:     "connect",
-				FuncName: d.Name.Name,
+				Kind:       "connect",
+				FuncName:   d.Name.Name,
+				Package:    ctx.packageName,
+				ImportPath: ctx.importPath,
+				RelDir:     ctx.relDir,
+				Exported:   exported,
 			})
 
 		case "disconnect":
 			module.Lifecycle = append(module.Lifecycle, ParsedLifecycle{
-				Kind:     "disconnect",
-				FuncName: d.Name.Name,
+				Kind:       "disconnect",
+				FuncName:   d.Name.Name,
+				Package:    ctx.packageName,
+				ImportPath: ctx.importPath,
+				RelDir:     ctx.relDir,
+				Exported:   exported,
 			})
 
 		case "procedure":
 			p := ParsedProcedure{
-				FuncName: d.Name.Name,
-				Name:     dir.Params["name"],
+				FuncName:   d.Name.Name,
+				Name:       dir.Params["name"],
+				Package:    ctx.packageName,
+				ImportPath: ctx.importPath,
+				RelDir:     ctx.relDir,
+				Exported:   exported,
 			}
 			if p.Name == "" {
 				p.Name = toSnakeCase(d.Name.Name)
@@ -357,9 +700,13 @@ func processFuncDecl(d *ast.FuncDecl, f *ast.File, module *ParsedModule) error {
 
 		case "view":
 			v := ParsedView{
-				FuncName: d.Name.Name,
-				Name:     dir.Params["name"],
-				IsPublic: dir.Params["public"] == "true",
+				FuncName:   d.Name.Name,
+				Name:       dir.Params["name"],
+				IsPublic:   dir.Params["public"] == "true",
+				Package:    ctx.packageName,
+				ImportPath: ctx.importPath,
+				RelDir:     ctx.relDir,
+				Exported:   exported,
 			}
 			if v.Name == "" {
 				v.Name = toSnakeCase(d.Name.Name)

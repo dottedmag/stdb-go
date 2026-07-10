@@ -25,12 +25,12 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWritePlayer(w bsatn.Writer, v *Player) {
+func StdbWritePlayer(w bsatn.Writer, v *Player) {
 	w.PutU64(v.Id)
 	w.PutString(v.Name)
 }
 
-func stdbReadPlayer(r bsatn.Reader, v *Player) error {
+func StdbReadPlayer(r bsatn.Reader, v *Player) error {
 	var err error
 	if v.Id, err = r.GetU64(); err != nil {
 		return fmt.Errorf("decode Id: %w", err)
@@ -60,7 +60,7 @@ func stdbCallView(id uint32, sender types.Identity, args []byte) ([]byte, error)
 		} else {
 			w.PutArrayLen(uint32(len(result)))
 			for i := range result {
-				stdbWritePlayer(w, &result[i])
+				StdbWritePlayer(w, &result[i])
 			}
 		}
 		return w.Bytes(), nil
@@ -87,7 +87,7 @@ func stdbCallViewAnon(id uint32, args []byte) ([]byte, error) {
 		w.PutSumTag(0) // ViewResultHeader::RowData
 		if result != nil {
 			w.PutArrayLen(1)
-			stdbWritePlayer(w, &(*result))
+			StdbWritePlayer(w, &(*result))
 		} else {
 			w.PutArrayLen(0)
 		}

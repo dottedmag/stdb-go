@@ -25,12 +25,12 @@ var (
 
 func stdbStrPtr(s string) *string { return &s }
 
-func stdbWriteGameEvent(w bsatn.Writer, v *GameEvent) {
+func StdbWriteGameEvent(w bsatn.Writer, v *GameEvent) {
 	w.PutU8(v.EventType)
 	w.PutString(v.Data)
 }
 
-func stdbReadGameEvent(r bsatn.Reader, v *GameEvent) error {
+func StdbReadGameEvent(r bsatn.Reader, v *GameEvent) error {
 	var err error
 	if v.EventType, err = r.GetU8(); err != nil {
 		return fmt.Errorf("decode EventType: %w", err)
@@ -63,7 +63,7 @@ func (t *stdbGameEventTableHandle) resolve() {
 func (t *stdbGameEventTableHandle) Insert(row GameEvent) GameEvent {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
-	stdbWriteGameEvent(runtime.GlobalWriter, &row)
+	StdbWriteGameEvent(runtime.GlobalWriter, &row)
 	seqBytes, err := sys.DatastoreInsertBSATN(t.tableId, runtime.GlobalWriter.Bytes())
 	if err != nil {
 		panic(fmt.Sprintf("GameEventTable.Insert: %v", err))
@@ -76,7 +76,7 @@ func (t *stdbGameEventTableHandle) Delete(row GameEvent) {
 	t.resolve()
 	runtime.GlobalWriter.Reset()
 	runtime.GlobalWriter.PutArrayLen(1)
-	stdbWriteGameEvent(runtime.GlobalWriter, &row)
+	StdbWriteGameEvent(runtime.GlobalWriter, &row)
 	if _, err := sys.DatastoreDeleteAllByEqBSATN(t.tableId, runtime.GlobalWriter.Bytes()); err != nil {
 		panic(fmt.Sprintf("GameEventTable.Delete: %v", err))
 	}
@@ -89,7 +89,7 @@ func (t *stdbGameEventTableHandle) Scan() (runtime.TableIterator[GameEvent], err
 		return nil, err
 	}
 	return runtime.NewTableIterator[GameEvent](iter, func(r bsatn.Reader, v *GameEvent) error {
-		return stdbReadGameEvent(r, v)
+		return StdbReadGameEvent(r, v)
 	}), nil
 }
 

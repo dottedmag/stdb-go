@@ -9,16 +9,20 @@ import (
 
 // AnalyzedModule is the fully resolved module ready for code generation.
 type AnalyzedModule struct {
-	PackageName string
-	Tables      []AnalyzedTable
-	Reducers    []AnalyzedReducer
-	Lifecycle   []AnalyzedLifecycle
-	Procedures  []AnalyzedProcedure
-	Views       []AnalyzedView
-	SumTypes    []AnalyzedSumType
-	Enums       []AnalyzedEnum
-	Schedules   []parser.ParsedSchedule
-	RLS         []string
+	PackageName  string // root package name (usually "main")
+	ModulePath   string
+	RootDir      string
+	MultiPackage bool
+
+	Tables     []AnalyzedTable
+	Reducers   []AnalyzedReducer
+	Lifecycle  []AnalyzedLifecycle
+	Procedures []AnalyzedProcedure
+	Views      []AnalyzedView
+	SumTypes   []AnalyzedSumType
+	Enums      []AnalyzedEnum
+	Schedules  []parser.ParsedSchedule
+	RLS        []string
 
 	// Types maps Go type names to their analyzed type info.
 	Types map[string]*AnalyzedType
@@ -26,6 +30,31 @@ type AnalyzedModule struct {
 	// TypeOrder is the order in which types appear in the typespace.
 	// This includes all structs, sum types, and enums referenced by tables or other types.
 	TypeOrder []string
+
+	// Packages lists packages under the module (from parser).
+	Packages []parser.ParsedPackage
+}
+
+// CallExpr returns the Go expression used to invoke a function defined in
+// Package/ImportPath from the root generated package (bare name or pkg.Func).
+func CallExpr(funcName, pkgName, importPath string, isRoot bool, multi bool) string {
+	if !multi || isRoot || importPath == "" {
+		return funcName
+	}
+	// Import alias defaults to the last path element, which matches the package
+	// clause for conventional layouts (…/combat → combat).
+	alias := pkgName
+	if alias == "" {
+		alias = pathBase(importPath)
+	}
+	return alias + "." + funcName
+}
+
+func pathBase(importPath string) string {
+	if i := strings.LastIndex(importPath, "/"); i >= 0 {
+		return importPath[i+1:]
+	}
+	return importPath
 }
 
 // AnalyzedType represents a fully resolved Go type.
@@ -38,6 +67,9 @@ type AnalyzedType struct {
 	Scope          []string          // optional namespace scope
 	TypespaceIdx   int               // index in the typespace
 	CustomOrdering bool              // whether type needs custom ordering (has btree index)
+	Package        string
+	ImportPath     string
+	RelDir         string
 }
 
 // TypeKind classifies a Go type for BSATN encoding.
@@ -122,20 +154,30 @@ type AnalyzedTable struct {
 	Name         string
 	Access       string
 	IsEvent      bool
-	StructName   string
+	StructName   string // bare Go type name
 	Fields       []AnalyzedField
 	ExtraIndexes []parser.ParsedMultiColIndex
 	TypespaceRef int    // typespace index for this table's struct
 	VarName      string // Go variable name for the table accessor (e.g., "EntityTable")
+	Package      string
+	ImportPath   string
+	RelDir       string
+	// QualifiedStruct is how root code refers to the type ("Character" or "schema.Character").
+	QualifiedStruct string
 }
 
 // AnalyzedReducer has fully resolved parameters.
 type AnalyzedReducer struct {
 	Name     string
 	FuncName string
+	// CallName is the expression the root dispatcher uses (FuncName or pkg.FuncName).
+	CallName string
 	Params   []AnalyzedParam
 	HasError bool
 	ID       uint32 // reducer ID (index in combined list)
+	Package  string
+	ImportPath string
+	RelDir   string
 }
 
 // AnalyzedParam is a resolved parameter.
@@ -147,31 +189,43 @@ type AnalyzedParam struct {
 
 // AnalyzedLifecycle is a lifecycle reducer.
 type AnalyzedLifecycle struct {
-	Kind     string // "init", "connect", "disconnect"
-	FuncName string
-	ID       uint32 // reducer ID in combined list
+	Kind       string // "init", "connect", "disconnect"
+	FuncName   string
+	CallName   string
+	ID         uint32 // reducer ID in combined list
+	Package    string
+	ImportPath string
+	RelDir     string
 }
 
 // AnalyzedProcedure has fully resolved parameters and return type.
 type AnalyzedProcedure struct {
 	Name         string
 	FuncName     string
+	CallName     string
 	Params       []AnalyzedParam
 	ReturnType   *AlgType // nil if void
 	ReturnGoType string
 	ID           uint32
+	Package      string
+	ImportPath   string
+	RelDir       string
 }
 
 // AnalyzedView has fully resolved parameters and return type.
 type AnalyzedView struct {
 	Name         string
 	FuncName     string
+	CallName     string
 	IsPublic     bool
 	IsAnonymous  bool
 	Params       []AnalyzedParam
 	ReturnType   AlgType
 	ReturnGoType string
 	ID           uint32 // index within auth or anon list
+	Package      string
+	ImportPath   string
+	RelDir       string
 }
 
 // AnalyzedSumType has resolved variants.
@@ -255,11 +309,24 @@ func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 
 	// Build the analyzed module.
 	module := &AnalyzedModule{
-		PackageName: parsed.PackageName,
-		Types:       a.types,
-		TypeOrder:   a.typeOrder,
-		Schedules:   parsed.Schedules,
-		RLS:         parsed.RLS,
+		PackageName:  parsed.PackageName,
+		ModulePath:   parsed.ModulePath,
+		RootDir:      parsed.RootDir,
+		MultiPackage: parsed.MultiPackage,
+		Types:        a.types,
+		TypeOrder:    a.typeOrder,
+		Schedules:    parsed.Schedules,
+		RLS:          parsed.RLS,
+		Packages:     parsed.Packages,
+	}
+
+	// Attach package ownership onto AnalyzedType for dual codegen.
+	for name, st := range parsed.Structs {
+		if at, ok := a.types[name]; ok {
+			at.Package = st.Package
+			at.ImportPath = st.ImportPath
+			at.RelDir = st.RelDir
+		}
 	}
 
 	// Mark tables that have btree indexes as needing custom ordering.
@@ -290,7 +357,11 @@ func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 			StructName:   table.StructName,
 			ExtraIndexes: table.ExtraIndexes,
 			VarName:      ToPascalCase(table.Name) + "Table",
+			Package:      table.Package,
+			ImportPath:   table.ImportPath,
+			RelDir:       table.RelDir,
 		}
+		at.QualifiedStruct = qualifyTypeName(table.StructName, table.Package, table.ImportPath, table.RelDir == "", parsed.MultiPackage)
 		if typeInfo, ok := a.types[table.StructName]; ok {
 			at.TypespaceRef = typeInfo.TypespaceIdx
 			at.Fields = typeInfo.Fields
@@ -302,10 +373,14 @@ func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 	var reducerID uint32
 	for _, r := range parsed.Reducers {
 		ar := AnalyzedReducer{
-			Name:     r.Name,
-			FuncName: r.FuncName,
-			HasError: r.HasError,
-			ID:       reducerID,
+			Name:       r.Name,
+			FuncName:   r.FuncName,
+			CallName:   CallExpr(r.FuncName, r.Package, r.ImportPath, r.RelDir == "", parsed.MultiPackage),
+			HasError:   r.HasError,
+			ID:         reducerID,
+			Package:    r.Package,
+			ImportPath: r.ImportPath,
+			RelDir:     r.RelDir,
 		}
 		for _, p := range r.Params {
 			algType, _ := a.resolveGoType(p.GoType)
@@ -322,9 +397,13 @@ func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 	// Build analyzed lifecycle reducers (IDs continue from reducers).
 	for _, lc := range parsed.Lifecycle {
 		alc := AnalyzedLifecycle{
-			Kind:     lc.Kind,
-			FuncName: lc.FuncName,
-			ID:       reducerID,
+			Kind:       lc.Kind,
+			FuncName:   lc.FuncName,
+			CallName:   CallExpr(lc.FuncName, lc.Package, lc.ImportPath, lc.RelDir == "", parsed.MultiPackage),
+			ID:         reducerID,
+			Package:    lc.Package,
+			ImportPath: lc.ImportPath,
+			RelDir:     lc.RelDir,
 		}
 		module.Lifecycle = append(module.Lifecycle, alc)
 		reducerID++
@@ -335,8 +414,12 @@ func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 		ap := AnalyzedProcedure{
 			Name:         p.Name,
 			FuncName:     p.FuncName,
+			CallName:     CallExpr(p.FuncName, p.Package, p.ImportPath, p.RelDir == "", parsed.MultiPackage),
 			ReturnGoType: p.ReturnType,
 			ID:           uint32(i),
+			Package:      p.Package,
+			ImportPath:   p.ImportPath,
+			RelDir:       p.RelDir,
 		}
 		for _, param := range p.Params {
 			algType, _ := a.resolveGoType(param.GoType)
@@ -359,9 +442,13 @@ func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 		av := AnalyzedView{
 			Name:         v.Name,
 			FuncName:     v.FuncName,
+			CallName:     CallExpr(v.FuncName, v.Package, v.ImportPath, v.RelDir == "", parsed.MultiPackage),
 			IsPublic:     v.IsPublic,
 			IsAnonymous:  v.IsAnonymous,
 			ReturnGoType: v.ReturnType,
+			Package:      v.Package,
+			ImportPath:   v.ImportPath,
+			RelDir:       v.RelDir,
 		}
 		if v.IsAnonymous {
 			av.ID = anonIdx
@@ -410,6 +497,19 @@ func Analyze(parsed *parser.ParsedModule) (*AnalyzedModule, error) {
 	}
 
 	return module, nil
+}
+
+// qualifyTypeName returns how the root package should refer to a type defined
+// in another package under multi-package mode.
+func qualifyTypeName(typeName, pkgName, importPath string, isRoot, multi bool) string {
+	if !multi || isRoot {
+		return typeName
+	}
+	alias := pkgName
+	if alias == "" {
+		alias = pathBase(importPath)
+	}
+	return alias + "." + typeName
 }
 
 // analyzer tracks type resolution state.
@@ -612,7 +712,7 @@ func (a *analyzer) resolveGoType(goType string) (AlgType, error) {
 		return AlgType{Kind: AlgKindUuid, TypeName: "types.Uuid"}, nil
 	}
 
-	// Registered type (enum, sum type, or struct)
+	// Registered type (enum, sum type, or struct) — bare name.
 	if t, ok := a.types[goType]; ok {
 		return AlgType{Kind: AlgKindRef, Ref: t.TypespaceIdx, TypeName: goType}, nil
 	}
@@ -624,6 +724,26 @@ func (a *analyzer) resolveGoType(goType string) (AlgType, error) {
 			return AlgType{}, err
 		}
 		return AlgType{Kind: AlgKindRef, Ref: t.TypespaceIdx, TypeName: goType}, nil
+	}
+
+	// package.Type selector (multi-package: combat uses schema.AttackReq).
+	// TypeName is the bare product name so StdbReadAttackReq / schema.StdbReadAttackReq
+	// resolve correctly; the Go param type keeps the qualified form from the signature.
+	if i := strings.LastIndex(goType, "."); i >= 0 {
+		bare := goType[i+1:]
+		if t, ok := a.types[bare]; ok {
+			return AlgType{Kind: AlgKindRef, Ref: t.TypespaceIdx, TypeName: bare}, nil
+		}
+		if _, ok := a.parsed.Structs[bare]; ok {
+			t, err := a.resolveStructType(bare)
+			if err != nil {
+				return AlgType{}, err
+			}
+			return AlgType{Kind: AlgKindRef, Ref: t.TypespaceIdx, TypeName: bare}, nil
+		}
+		if underlying, ok := a.parsed.TypeAliases[bare]; ok {
+			return a.resolveGoType(underlying)
+		}
 	}
 
 	// Resolve type aliases (e.g., TestAlias = TestA).
