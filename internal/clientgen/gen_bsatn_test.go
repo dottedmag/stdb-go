@@ -1,6 +1,11 @@
 package clientgen_test
 
 import (
+	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"go/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +19,51 @@ func TestGenerateBsatn_EmptySchema(t *testing.T) {
 	result, err := clientgen.GenerateBsatnForTest(schema, "test_pkg")
 	require.NoError(t, err)
 	assert.Nil(t, result)
+}
+
+func TestGenerateBsatn_EmptyProductCompiles(t *testing.T) {
+	schema := &clientgen.ModuleSchema{
+		Typespace: []clientgen.AlgebraicType{{Kind: clientgen.ATKProduct, Product: &clientgen.ProductType{}}},
+		Types:     []clientgen.TypeSchema{{Name: "Empty", TypeRef: 0}},
+		Reducers: []clientgen.ReducerSchema{{Name: "use_empty", Params: []clientgen.FieldSchema{
+			{Name: "value", Type: &clientgen.AlgebraicType{Kind: clientgen.ATKRef, Ref: 0}},
+		}}},
+	}
+	gen, err := clientgen.NewClientGen().WithSchema(schema).WithPackageName("bindings").Build()
+	require.NoError(t, err)
+	files, err := gen.Generate()
+	require.NoError(t, err)
+
+	// Empty codecs need only the Reader/Writer type names. Type-checking catches
+	// unused locals, which gofmt and the existing golden tests cannot detect.
+	fset := token.NewFileSet()
+	stub, err := parser.ParseFile(fset, "bsatn.go", `package bsatn; type Reader interface{}; type Writer interface{}`, 0)
+	require.NoError(t, err)
+	bsatn, err := (&types.Config{}).Check("go.digitalxero.dev/spacetimedb-client/bsatn", fset, []*ast.File{stub}, nil)
+	require.NoError(t, err)
+	var codecs []*ast.File
+	for _, file := range files {
+		if file.Name != "types_generated.go" && file.Name != "bsatn_generated.go" {
+			continue
+		}
+		parsed, err := parser.ParseFile(fset, file.Name, file.Content, 0)
+		require.NoError(t, err)
+		codecs = append(codecs, parsed)
+	}
+	require.Len(t, codecs, 2)
+	_, err = (&types.Config{Importer: codecTestImporter{bsatn}}).Check("bindings", fset, codecs, nil)
+	require.NoError(t, err)
+}
+
+type codecTestImporter struct {
+	bsatn *types.Package
+}
+
+func (i codecTestImporter) Import(path string) (*types.Package, error) {
+	if path == i.bsatn.Path() {
+		return i.bsatn, nil
+	}
+	return nil, fmt.Errorf("unexpected import %q", path)
 }
 
 func TestGenerateBsatn_StructEncodeDecode(t *testing.T) {

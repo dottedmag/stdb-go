@@ -96,7 +96,9 @@ func generateStructEncode(w *strings.Builder, name string, pt *ProductType, sche
 func generateStructDecode(w *strings.Builder, name string, pt *ProductType, schema *ModuleSchema, imports map[string]string) {
 	fmt.Fprintf(w, "func Read%s(r bsatn.Reader) (*%s, error) {\n", name, name)
 	fmt.Fprintf(w, "\tv := &%s{}\n", name)
-	fmt.Fprintf(w, "\tvar err error\n")
+	if len(pt.Elements) > 0 {
+		fmt.Fprintf(w, "\tvar err error\n")
+	}
 
 	for _, elem := range pt.Elements {
 		fieldName := toGoName(elem.Name)
