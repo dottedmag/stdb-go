@@ -70,8 +70,8 @@ func (g *clientGen) Build() (ClientGen, error) {
 func (g *clientGen) Generate() ([]OutputFile, error) {
 	var files []OutputFile
 
-	// Filter schema based on visibility
-	schema := g.filteredSchema()
+	// Filter by visibility, then keep only types used by the generated API.
+	schema := pruneUnusedTypes(g.filteredSchema())
 
 	// Generate types
 	typesContent, err := generateTypes(schema, g.packageName)
@@ -168,35 +168,31 @@ func (g *clientGen) Generate() ([]OutputFile, error) {
 }
 
 func (g *clientGen) filteredSchema() *ModuleSchema {
-	if g.includePrivate {
-		return g.schema
-	}
-
 	filtered := &ModuleSchema{
 		Typespace: g.schema.Typespace,
 		Types:     g.schema.Types,
 	}
 
 	for _, t := range g.schema.Tables {
-		if t.Access != "Private" {
+		if g.includePrivate || t.Access != "Private" {
 			filtered.Tables = append(filtered.Tables, t)
 		}
 	}
 
 	for _, r := range g.schema.Reducers {
-		if r.Visibility != "Private" {
+		if r.Lifecycle == "" && (g.includePrivate || r.Visibility != "Private") {
 			filtered.Reducers = append(filtered.Reducers, r)
 		}
 	}
 
 	for _, p := range g.schema.Procedures {
-		if p.Visibility != "Private" {
+		if g.includePrivate || p.Visibility != "Private" {
 			filtered.Procedures = append(filtered.Procedures, p)
 		}
 	}
 
 	for _, v := range g.schema.Views {
-		if v.IsPublic {
+		if g.includePrivate || v.IsPublic {
 			filtered.Views = append(filtered.Views, v)
 		}
 	}

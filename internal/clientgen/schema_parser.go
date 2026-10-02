@@ -45,6 +45,7 @@ type ReducerSchema struct {
 	Name       string
 	Params     []FieldSchema
 	Visibility string // "Private" or "ClientCallable"
+	Lifecycle  string // nonempty for server-invoked lifecycle hooks
 }
 
 // ProcedureSchema is a resolved procedure definition.
@@ -58,6 +59,7 @@ type ProcedureSchema struct {
 // ViewSchema is a resolved view definition.
 type ViewSchema struct {
 	Name        string
+	WireName    string // explicit server name, if different from the source name
 	Index       int
 	IsPublic    bool
 	IsAnonymous bool
@@ -88,10 +90,23 @@ func resolveSchema(raw *RawModuleDef) (*ModuleSchema, error) {
 	v10 := raw.V10
 	schema := &ModuleSchema{}
 
-	// First pass: extract typespace
+	// First pass: extract typespace and lifecycle metadata.
+	lifecycle := make(map[string]string)
+	functionNames := make(map[string]string)
 	for _, section := range v10.Sections {
-		if section.sectionType == "Typespace" {
+		switch section.sectionType {
+		case "Typespace":
 			schema.Typespace = section.typespace
+		case "LifeCycleReducers":
+			for _, hook := range section.lifecycle {
+				lifecycle[hook.FunctionName] = hook.LifecycleSpec
+			}
+		case "ExplicitNames":
+			for _, entry := range section.explicitNames.Entries {
+				if entry.Function != nil {
+					functionNames[entry.Function.SourceName] = entry.Function.CanonicalName
+				}
+			}
 		}
 	}
 
@@ -156,10 +171,15 @@ func resolveSchema(raw *RawModuleDef) (*ModuleSchema, error) {
 
 		case "Reducers":
 			for _, r := range section.reducers {
+				hook := lifecycle[r.SourceName]
+				if hook == "" {
+					hook = lifecycle[functionNames[r.SourceName]]
+				}
 				schema.Reducers = append(schema.Reducers, ReducerSchema{
 					Name:       r.SourceName,
 					Params:     resolveParams(r.Params),
 					Visibility: r.Visibility,
+					Lifecycle:  hook,
 				})
 			}
 
@@ -179,6 +199,7 @@ func resolveSchema(raw *RawModuleDef) (*ModuleSchema, error) {
 				retType := v.ReturnType
 				schema.Views = append(schema.Views, ViewSchema{
 					Name:        v.SourceName,
+					WireName:    functionNames[v.SourceName],
 					Index:       v.Index,
 					IsPublic:    v.IsPublic,
 					IsAnonymous: v.IsAnonymous,

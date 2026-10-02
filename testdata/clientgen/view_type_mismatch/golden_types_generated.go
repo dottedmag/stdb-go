@@ -2,8 +2,7 @@
 
 package module_bindings
 
-type Player struct {
-	ID    uint64
-	Name  string
-	Score uint32
+type Self struct {
+	ID   uint32
+	Name string
 }

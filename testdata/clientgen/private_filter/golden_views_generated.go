@@ -12,33 +12,33 @@ type publicViewViewDef struct{}
 
 func (publicViewViewDef) TableName() string { return "PublicView" }
 
-func (publicViewViewDef) DecodeRow(r bsatn.Reader) (*PublicView, error) {
-	return ReadPublicView(r)
+func (publicViewViewDef) DecodeRow(r bsatn.Reader) (*PublicItem, error) {
+	return ReadPublicItem(r)
 }
 
-func (publicViewViewDef) EncodeRow(row *PublicView) []byte {
+func (publicViewViewDef) EncodeRow(row *PublicItem) []byte {
 	w := bsatn.NewWriter(64)
 	row.WriteBsatn(w)
 	return w.Bytes()
 }
 
-// PublicViewView is a type-safe view cache for PublicView rows.
-type PublicViewView = cache.TypedTableCache[*PublicView]
+// PublicViewView is a type-safe view cache for PublicItem rows.
+type PublicViewView = cache.TypedTableCache[*PublicItem]
 
 // privateViewViewDef implements cache.TypedTableDef for the PrivateView view.
 type privateViewViewDef struct{}
 
 func (privateViewViewDef) TableName() string { return "PrivateView" }
 
-func (privateViewViewDef) DecodeRow(r bsatn.Reader) (*PrivateView, error) {
-	return ReadPrivateView(r)
+func (privateViewViewDef) DecodeRow(r bsatn.Reader) (*PrivateConfig, error) {
+	return ReadPrivateConfig(r)
 }
 
-func (privateViewViewDef) EncodeRow(row *PrivateView) []byte {
+func (privateViewViewDef) EncodeRow(row *PrivateConfig) []byte {
 	w := bsatn.NewWriter(64)
 	row.WriteBsatn(w)
 	return w.Bytes()
 }
 
-// PrivateViewView is a type-safe view cache for PrivateView rows.
-type PrivateViewView = cache.TypedTableCache[*PrivateView]
+// PrivateViewView is a type-safe view cache for PrivateConfig rows.
+type PrivateViewView = cache.TypedTableCache[*PrivateConfig]

@@ -7,7 +7,7 @@ import (
 
 // generateTypes generates Go type definitions from the resolved schema.
 func generateTypes(schema *ModuleSchema, pkgName string) ([]byte, error) {
-	if len(schema.Types) == 0 && len(schema.Tables) == 0 {
+	if len(schema.Types) == 0 && len(schema.Tables) == 0 && len(schema.Views) == 0 {
 		return nil, nil
 	}
 
@@ -78,6 +78,16 @@ func generateTypes(schema *ModuleSchema, pkgName string) ([]byte, error) {
 
 		goName := toGoName(table.Name)
 		generateStructType(&typeCode, goName, table.ProductType, schema, imports)
+	}
+
+	for _, view := range schema.Views {
+		name, product, named, err := viewRow(view, schema)
+		if err != nil {
+			return nil, err
+		}
+		if !named {
+			generateStructType(&typeCode, name, product, schema, imports)
+		}
 	}
 
 	if typeCode.Len() == 0 {

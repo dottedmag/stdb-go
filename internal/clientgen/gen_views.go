@@ -23,6 +23,14 @@ func generateViews(schema *ModuleSchema, pkgName string) ([]byte, error) {
 
 	for _, view := range schema.Views {
 		goName := toGoName(view.Name)
+		rowName, _, _, err := viewRow(view, schema)
+		if err != nil {
+			return nil, err
+		}
+		wireName := view.WireName
+		if wireName == "" {
+			wireName = view.Name
+		}
 		defName := toLowerCamel(view.Name) + "ViewDef"
 
 		// View definition struct (same pattern as table defs)
@@ -30,23 +38,23 @@ func generateViews(schema *ModuleSchema, pkgName string) ([]byte, error) {
 		fmt.Fprintf(&viewCode, "type %s struct{}\n\n", defName)
 
 		// TableName (views use their name in the cache just like tables)
-		fmt.Fprintf(&viewCode, "func (%s) TableName() string { return %q }\n\n", defName, view.Name)
+		fmt.Fprintf(&viewCode, "func (%s) TableName() string { return %q }\n\n", defName, wireName)
 
 		// DecodeRow - views return rows that are decoded the same way
-		fmt.Fprintf(&viewCode, "func (%s) DecodeRow(r bsatn.Reader) (*%s, error) {\n", defName, goName)
-		fmt.Fprintf(&viewCode, "\treturn Read%s(r)\n", goName)
+		fmt.Fprintf(&viewCode, "func (%s) DecodeRow(r bsatn.Reader) (*%s, error) {\n", defName, rowName)
+		fmt.Fprintf(&viewCode, "\treturn Read%s(r)\n", rowName)
 		fmt.Fprintf(&viewCode, "}\n\n")
 
 		// EncodeRow
-		fmt.Fprintf(&viewCode, "func (%s) EncodeRow(row *%s) []byte {\n", defName, goName)
+		fmt.Fprintf(&viewCode, "func (%s) EncodeRow(row *%s) []byte {\n", defName, rowName)
 		fmt.Fprintf(&viewCode, "\tw := bsatn.NewWriter(64)\n")
 		fmt.Fprintf(&viewCode, "\trow.WriteBsatn(w)\n")
 		fmt.Fprintf(&viewCode, "\treturn w.Bytes()\n")
 		fmt.Fprintf(&viewCode, "}\n\n")
 
 		// Type alias for typed view cache
-		fmt.Fprintf(&viewCode, "// %sView is a type-safe view cache for %s rows.\n", goName, view.Name)
-		fmt.Fprintf(&viewCode, "type %sView = cache.TypedTableCache[*%s]\n\n", goName, goName)
+		fmt.Fprintf(&viewCode, "// %sView is a type-safe view cache for %s rows.\n", goName, rowName)
+		fmt.Fprintf(&viewCode, "type %sView = cache.TypedTableCache[*%s]\n\n", goName, rowName)
 	}
 
 	w.WriteString(clientImportBlock(imports))

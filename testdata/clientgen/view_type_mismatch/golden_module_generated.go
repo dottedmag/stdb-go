@@ -9,11 +9,8 @@ import (
 
 // ModuleBindings ties together all table and view caches for the module.
 type ModuleBindings struct {
-	conn          client.DbConnection
-	PublicItem    *PublicItemTable
-	PrivateConfig *PrivateConfigTable
-	PublicView    *PublicViewView
-	PrivateView   *PrivateViewView
+	conn     client.DbConnection
+	SelfView *SelfViewView
 }
 
 // NewModuleBindings registers all tables and views with the connection and
@@ -21,10 +18,7 @@ type ModuleBindings struct {
 func NewModuleBindings(conn client.DbConnection) *ModuleBindings {
 	c := conn.Cache()
 	m := &ModuleBindings{conn: conn}
-	m.PublicItem = cache.RegisterTypedTableWithPK[*PublicItem, uint64](c, publicItemTableDef{})
-	m.PrivateConfig = cache.RegisterTypedTable[*PrivateConfig](c, privateConfigTableDef{})
-	m.PublicView = cache.RegisterTypedTable[*PublicItem](c, publicViewViewDef{})
-	m.PrivateView = cache.RegisterTypedTable[*PrivateConfig](c, privateViewViewDef{})
+	m.SelfView = cache.RegisterTypedTable[*Self](c, selfViewViewDef{})
 	return m
 }
 

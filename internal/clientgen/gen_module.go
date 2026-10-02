@@ -82,9 +82,13 @@ func generateModule(schema *ModuleSchema, pkgName string) ([]byte, error) {
 
 	for _, view := range schema.Views {
 		goName := toGoName(view.Name)
+		rowName, _, _, err := viewRow(view, schema)
+		if err != nil {
+			return nil, err
+		}
 		defName := toLowerCamel(view.Name) + "ViewDef"
 		fmt.Fprintf(&moduleCode, "\tm.%s = cache.RegisterTypedTable[*%s](c, %s{})\n",
-			goName, goName, defName)
+			goName, rowName, defName)
 	}
 
 	fmt.Fprintf(&moduleCode, "\treturn m\n")

@@ -6,24 +6,19 @@ import (
 	"go.digitalxero.dev/spacetimedb-client/bsatn"
 )
 
-func (v *Player) WriteBsatn(w bsatn.Writer) {
-	w.PutU64(v.ID)
+func (v *Self) WriteBsatn(w bsatn.Writer) {
+	w.PutU32(v.ID)
 	w.PutString(v.Name)
-	w.PutU32(v.Score)
 }
 
-func ReadPlayer(r bsatn.Reader) (*Player, error) {
-	v := &Player{}
+func ReadSelf(r bsatn.Reader) (*Self, error) {
+	v := &Self{}
 	var err error
-	v.ID, err = r.GetU64()
+	v.ID, err = r.GetU32()
 	if err != nil {
 		return nil, err
 	}
 	v.Name, err = r.GetString()
-	if err != nil {
-		return nil, err
-	}
-	v.Score, err = r.GetU32()
 	if err != nil {
 		return nil, err
 	}

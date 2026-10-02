@@ -88,6 +88,10 @@ func TestClientGen_Views(t *testing.T) {
 	runClientGenGoldenTest(t, "views")
 }
 
+func TestClientGen_ViewTypeMismatch(t *testing.T) {
+	runClientGenGoldenTest(t, "view_type_mismatch")
+}
+
 func TestClientGen_PrivateFilter(t *testing.T) {
 	runClientGenGoldenTest(t, "private_filter")
 }
@@ -260,7 +264,7 @@ func TestFilteredSchema_IncludePrivateTrue(t *testing.T) {
 	}
 
 	filtered := clientgen.FilteredSchemaForTest(schema, true)
-	// When includePrivate is true, filtered returns original schema
+	// Including private entries preserves ordinary tables and functions.
 	assert.Equal(t, schema, filtered)
 }
 

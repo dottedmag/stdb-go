@@ -18,16 +18,17 @@ type RawModuleDefV10 struct {
 
 // RawModuleDefV10Section is a discriminated union of section types.
 type RawModuleDefV10Section struct {
-	sectionType string
-	typespace   []AlgebraicType
-	types       []RawTypeDefV10
-	tables      []RawTableDefV10
-	reducers    []RawReducerDefV10
-	procedures  []RawProcedureDefV10
-	views       []RawViewDefV10
-	schedules   []RawScheduleDefV10
-	lifecycle   []RawLifeCycleReducerDefV10
-	rls         []RawRowLevelSecurityDefV10
+	sectionType   string
+	typespace     []AlgebraicType
+	types         []RawTypeDefV10
+	tables        []RawTableDefV10
+	reducers      []RawReducerDefV10
+	procedures    []RawProcedureDefV10
+	views         []RawViewDefV10
+	schedules     []RawScheduleDefV10
+	lifecycle     []RawLifeCycleReducerDefV10
+	rls           []RawRowLevelSecurityDefV10
+	explicitNames RawExplicitNamesV10
 }
 
 func (s *RawModuleDefV10Section) UnmarshalJSON(data []byte) error {
@@ -70,7 +71,9 @@ func (s *RawModuleDefV10Section) UnmarshalJSON(data []byte) error {
 			return json.Unmarshal(val, &s.lifecycle)
 		case "RowLevelSecurity":
 			return json.Unmarshal(val, &s.rls)
-		case "CaseConversionPolicy", "ExplicitNames":
+		case "ExplicitNames":
+			return json.Unmarshal(val, &s.explicitNames)
+		case "CaseConversionPolicy":
 			// Ignored for client codegen
 			return nil
 		default:
@@ -387,6 +390,16 @@ type RawViewDefV10 struct {
 	IsAnonymous bool          `json:"is_anonymous"`
 	Params      ProductType   `json:"params"`
 	ReturnType  AlgebraicType `json:"return_type"`
+}
+
+// RawExplicitNamesV10 contains overrides of schema objects' wire names.
+type RawExplicitNamesV10 struct {
+	Entries []struct {
+		Function *struct {
+			SourceName    string `json:"source_name"`
+			CanonicalName string `json:"canonical_name"`
+		} `json:"Function"`
+	} `json:"entries"`
 }
 
 // --- Type definitions ---

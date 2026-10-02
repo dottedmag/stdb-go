@@ -7,7 +7,7 @@ import (
 
 // generateBsatn generates BSATN encode/decode functions for all types.
 func generateBsatn(schema *ModuleSchema, pkgName string) ([]byte, error) {
-	if len(schema.Types) == 0 && len(schema.Tables) == 0 {
+	if len(schema.Types) == 0 && len(schema.Tables) == 0 && len(schema.Views) == 0 {
 		return nil, nil
 	}
 
@@ -72,6 +72,17 @@ func generateBsatn(schema *ModuleSchema, pkgName string) ([]byte, error) {
 		goName := toGoName(table.Name)
 		generateStructEncode(&bsatnCode, goName, table.ProductType, schema, imports)
 		generateStructDecode(&bsatnCode, goName, table.ProductType, schema, imports)
+	}
+
+	for _, view := range schema.Views {
+		name, product, named, err := viewRow(view, schema)
+		if err != nil {
+			return nil, err
+		}
+		if !named {
+			generateStructEncode(&bsatnCode, name, product, schema, imports)
+			generateStructDecode(&bsatnCode, name, product, schema, imports)
+		}
 	}
 
 	if bsatnCode.Len() == 0 {

@@ -15,25 +15,3 @@ type Item struct {
 	CreatedAt   types.Timestamp
 	Data        []byte
 }
-
-type MessageContent interface {
-	messageContentVariant()
-}
-
-type MessageContentText struct {
-	Content string
-}
-
-func (MessageContentText) messageContentVariant() {}
-
-type MessageContentImage struct {
-	URL    string
-	Width  uint32
-	Height uint32
-}
-
-func (MessageContentImage) messageContentVariant() {}
-
-type MessageContentDeleted struct{}
-
-func (MessageContentDeleted) messageContentVariant() {}

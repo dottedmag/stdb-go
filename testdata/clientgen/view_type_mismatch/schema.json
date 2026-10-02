@@ -1,0 +1,51 @@
+{
+  "V10": {
+    "sections": [
+      {
+        "Typespace": {
+          "types": [
+            {
+              "Product": {
+                "elements": [
+                  {"name": {"some": "id"}, "algebraic_type": {"U32": []}},
+                  {"name": {"some": "name"}, "algebraic_type": {"String": []}}
+                ]
+              }
+            },
+            {"Product": {"elements": []}}
+          ]
+        }
+      },
+      {
+        "Types": [
+          {"source_name": {"scope": [], "source_name": "Self"}, "ty": 0, "custom_ordering": true},
+          {"source_name": {"scope": [], "source_name": "SelfView"}, "ty": 1, "custom_ordering": true}
+        ]
+      },
+      {
+        "Views": [
+          {
+            "source_name": "selfView",
+            "index": 0,
+            "is_public": true,
+            "is_anonymous": false,
+            "params": {"elements": []},
+            "return_type": {
+              "Sum": {
+                "variants": [
+                  {"name": {"some": "some"}, "algebraic_type": {"Ref": 0}},
+                  {"name": {"some": "none"}, "algebraic_type": {"Product": {"elements": []}}}
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ExplicitNames": {
+          "entries": [{"Function": {"source_name": "selfView", "canonical_name": "self"}}]
+        }
+      }
+    ]
+  }
+}

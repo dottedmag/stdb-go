@@ -505,6 +505,11 @@ publishing a multi-package module, regenerate clients as usual:
 stdb-go generate client -d my-database --out-dir=./eq-bindings
 ```
 
+Client generation emits types used by the selected tables, reducers, procedures,
+and views, including their nested dependencies. HTTP handlers and lifecycle hooks
+do not get callable client bindings, and unused named types are omitted. Re-running
+generation removes obsolete output files bearing this generator's header.
+
 ## Development
 
 ### Prerequisites

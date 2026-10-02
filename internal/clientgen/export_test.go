@@ -151,6 +151,10 @@ func FilteredSchemaForTest(schema *ModuleSchema, includePrivate bool) *ModuleSch
 	return g.filteredSchema()
 }
 
+func PruneUnusedTypesForTest(schema *ModuleSchema) *ModuleSchema {
+	return pruneUnusedTypes(schema)
+}
+
 // --- extract.go exports ---
 
 // BuildServerExtractorForTest builds a server extractor for testing.

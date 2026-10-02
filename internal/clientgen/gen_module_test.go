@@ -66,7 +66,7 @@ func TestGenerateModule_ViewsOnly(t *testing.T) {
 		},
 		Types: []clientgen.TypeSchema{{Name: "Summary", TypeRef: 0}},
 		Views: []clientgen.ViewSchema{
-			{Name: "Summary", Index: 0, IsPublic: true},
+			{Name: "Summary", Index: 0, IsPublic: true, ReturnType: &clientgen.AlgebraicType{Kind: clientgen.ATKRef, Ref: 0}},
 		},
 	}
 	result, err := clientgen.GenerateModuleForTest(schema, "test_pkg")
