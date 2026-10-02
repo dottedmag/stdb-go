@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -118,6 +119,31 @@ func TestClientGen_NoParamsReducer(t *testing.T) {
 
 func TestClientGen_TableTypeMismatch(t *testing.T) {
 	runClientGenGoldenTest(t, "table_type_mismatch")
+}
+
+func TestClientGen_EmptyPackageImport(t *testing.T) {
+	gen, err := clientgen.NewClientGen().WithSchema(&clientgen.ModuleSchema{}).
+		WithPackageName("bindings").Build()
+	require.NoError(t, err)
+	files, err := gen.Generate()
+	require.NoError(t, err)
+
+	dir := t.TempDir()
+	bindingsDir := filepath.Join(dir, "bindings")
+	require.NoError(t, os.MkdirAll(bindingsDir, 0755))
+	for _, file := range files {
+		require.NoError(t, os.WriteFile(filepath.Join(bindingsDir, file.Name), file.Content, 0644))
+	}
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/empty-client\n\ngo 1.25.0\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "import_test.go"), []byte(`package consumer
+
+import _ "example.com/empty-client/bindings"
+`), 0644))
+	cmd := exec.Command("go", "test", "./...")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GOWORK=off", "GOPROXY=off")
+	output, err := cmd.CombinedOutput()
+	require.NoError(t, err, "importing the empty bindings package: %s", output)
 }
 
 // --- Schema Parser Tests ---

@@ -156,6 +156,10 @@ func (g *clientGen) Generate() ([]OutputFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("generating module: %w", err)
 	}
+	// Keep the package importable even when there are no client bindings.
+	if len(moduleContent) == 0 && len(files) == 0 {
+		moduleContent = []byte(clientFileHeader(g.packageName))
+	}
 	if len(moduleContent) > 0 {
 		formatted, err := gofmtBytes(moduleContent)
 		if err != nil {

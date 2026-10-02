@@ -32,9 +32,11 @@ func TestRemoveStaleClientFiles(t *testing.T) {
 		assert.FileExists(t, filepath.Join(dir, name))
 	}
 
-	// A module with only server handlers produces no client files.
-	require.NoError(t, removeStaleClientFiles(dir, nil))
+	// A module with only server handlers retains just its package declaration.
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "module_generated.go"), []byte(generated), 0644))
+	require.NoError(t, removeStaleClientFiles(dir, []clientgen.OutputFile{{Name: "module_generated.go"}}))
 	_, err := os.Stat(filepath.Join(dir, "types_generated.go"))
 	assert.ErrorIs(t, err, os.ErrNotExist)
+	assert.FileExists(t, filepath.Join(dir, "module_generated.go"))
 	assert.FileExists(t, filepath.Join(dir, "tables_generated.go"))
 }

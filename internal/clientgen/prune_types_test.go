@@ -32,7 +32,9 @@ func TestClientGen_LifecycleAndHTTPHandlers(t *testing.T) {
 		require.NoError(t, err)
 		files, err := gen.Generate()
 		require.NoError(t, err)
-		assert.Empty(t, files, "handlers should not produce client bindings, includePrivate=%v", includePrivate)
+		require.Len(t, files, 1, "keep the package importable, includePrivate=%v", includePrivate)
+		assert.Equal(t, "module_generated.go", files[0].Name)
+		assert.Equal(t, strings.TrimSpace(clientgen.ClientFileHeaderForTest("bindings")), strings.TrimSpace(string(files[0].Content)))
 	}
 	assert.Len(t, schema.Types, 1, "generation must not mutate the input schema")
 	assert.Len(t, schema.Reducers, 1)
