@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/parser"
-	"go.digitalxero.dev/stdb-go/internal/servergen"
+	"github.com/dottedmag/stdb-go/internal/parser"
+	"github.com/dottedmag/stdb-go/internal/servergen"
 )
 
 // genFromSource writes a single source file, parses, analyzes, and generates it,

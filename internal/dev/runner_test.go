@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/dev"
+	"github.com/dottedmag/stdb-go/internal/dev"
 )
 
 func TestDevRunner_BuildRequired(t *testing.T) {

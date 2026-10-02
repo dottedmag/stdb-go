@@ -34,7 +34,7 @@ All import paths use `go.digitalxero.dev/spacetimedb-server` (runtime library) a
 ## Project Layout and Prerequisites
 
 - **Go 1.25+** — needed for `wasip1` WASM support and `go:wasmexport`. Use the standard Go toolchain; do NOT use TinyGo (stdb-go invokes plain `go build` itself).
-- **stdb-go CLI** (`go.digitalxero.dev/stdb-go`) — generator, builder, publisher. See the `stdb-go-cli` skill for command/flag details.
+- **stdb-go CLI** (`github.com/dottedmag/stdb-go`) — generator, builder, publisher. See the `stdb-go-cli` skill for command/flag details.
 
 ```
 mymodule/
@@ -51,7 +51,7 @@ mymodule/
 ### main.go (exactly this shape)
 
 ```go
-//go:generate go run go.digitalxero.dev/stdb-go
+//go:generate go run github.com/dottedmag/stdb-go
 package main
 
 func main() {}
@@ -814,7 +814,7 @@ Remember (user Go style): test files use `package <pkg>_test` and testify's `ass
 ### main.go
 
 ```go
-//go:generate go run go.digitalxero.dev/stdb-go
+//go:generate go run github.com/dottedmag/stdb-go
 package main
 
 func main() {}

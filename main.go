@@ -8,7 +8,7 @@
 //
 // With a go:generate directive in your module:
 //
-//	//go:generate go run go.digitalxero.dev/stdb-go
+//	//go:generate go run github.com/dottedmag/stdb-go
 package main
 
 import (

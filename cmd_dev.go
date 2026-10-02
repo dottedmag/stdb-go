@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-go/internal/dev"
-	"go.digitalxero.dev/stdb-go/internal/publish"
+	"github.com/dottedmag/stdb-go/internal/dev"
+	"github.com/dottedmag/stdb-go/internal/publish"
 )
 
 func newDevCmd() *cobra.Command {

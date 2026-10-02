@@ -1,4 +1,4 @@
-module go.digitalxero.dev/stdb-go
+module github.com/dottedmag/stdb-go
 
 go 1.25.0
 

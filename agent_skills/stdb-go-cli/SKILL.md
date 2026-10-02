@@ -1,15 +1,15 @@
 ---
 name: stdb-go-cli
-description: 'Use whenever running or scripting the stdb-go CLI tool — stdb-go init, stdb-go build, stdb-go publish, stdb-go dev, stdb-go generate (server or client), stdb-go upgrade, stdb-go skills, stdb-go version — or any task involving scaffolding SpacetimeDB Go projects, building SpacetimeDB Go modules to WASM (wasip1), publishing SpacetimeDB databases from Go, generating Go client bindings from a module schema, the spacetime.json project config, //go:generate go run go.digitalxero.dev/stdb-go directives, or the dev watch/auto-publish loop. Trigger on any mention of the stdb-go CLI, its flags, its Taskfile tasks, or questions like "how do I build/publish/scaffold a SpacetimeDB Go module". Covers CLI usage only; for writing module code (//stdb: directives, tables, reducers) or client code, use the stdb-go-server and stdb-go-client skills.'
+description: 'Use whenever running or scripting the stdb-go CLI tool — stdb-go init, stdb-go build, stdb-go publish, stdb-go dev, stdb-go generate (server or client), stdb-go upgrade, stdb-go skills, stdb-go version — or any task involving scaffolding SpacetimeDB Go projects, building SpacetimeDB Go modules to WASM (wasip1), publishing SpacetimeDB databases from Go, generating Go client bindings from a module schema, the spacetime.json project config, //go:generate go run github.com/dottedmag/stdb-go directives, or the dev watch/auto-publish loop. Trigger on any mention of the stdb-go CLI, its flags, its Taskfile tasks, or questions like "how do I build/publish/scaffold a SpacetimeDB Go module". Covers CLI usage only; for writing module code (//stdb: directives, tables, reducers) or client code, use the stdb-go-server and stdb-go-client skills.'
 ---
 
 # stdb-go CLI
 
 ## Overview
 
-`stdb-go` (`go.digitalxero.dev/stdb-go`) is the command-line tool for SpacetimeDB Go development. It scaffolds projects, generates server glue code from `//stdb:` comment directives, compiles modules to WASM, publishes them to a SpacetimeDB server, generates typed Go client bindings, and runs a live-reload dev loop.
+`stdb-go` (`github.com/dottedmag/stdb-go`) is the command-line tool for SpacetimeDB Go development. It scaffolds projects, generates server glue code from `//stdb:` comment directives, compiles modules to WASM, publishes them to a SpacetimeDB server, generates typed Go client bindings, and runs a live-reload dev loop.
 
-Running bare `stdb-go` with no subcommand runs server codegen (same as `stdb-go generate server`) for backwards compatibility — this is what the `//go:generate go run go.digitalxero.dev/stdb-go` directive relies on.
+Running bare `stdb-go` with no subcommand runs server codegen (same as `stdb-go generate server`) for backwards compatibility — this is what the `//go:generate go run github.com/dottedmag/stdb-go` directive relies on.
 
 | Command | Purpose |
 |---------|---------|
@@ -44,7 +44,7 @@ Parses all Go packages under the module root (nested directories included) for `
 stdb-go generate server --dir=./mymodule
 ```
 
-Prefer wiring this into the module via `//go:generate go run go.digitalxero.dev/stdb-go` in `main.go` so `go generate ./...` regenerates it — that keeps codegen versioned with the module's `go.mod` rather than a globally installed binary.
+Prefer wiring this into the module via `//go:generate go run github.com/dottedmag/stdb-go` in `main.go` so `go generate ./...` regenerates it — that keeps codegen versioned with the module's `go.mod` rather than a globally installed binary.
 
 ### `stdb-go generate client`
 

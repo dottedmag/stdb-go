@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"go.digitalxero.dev/stdb-go/templates"
+	"github.com/dottedmag/stdb-go/templates"
 )
 
 // ProjectType represents the type of project to scaffold.

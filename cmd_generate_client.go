@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-go/internal/clientgen"
-	"go.digitalxero.dev/stdb-go/internal/publish"
+	"github.com/dottedmag/stdb-go/internal/clientgen"
+	"github.com/dottedmag/stdb-go/internal/publish"
 )
 
 func newGenerateClientCmd() *cobra.Command {

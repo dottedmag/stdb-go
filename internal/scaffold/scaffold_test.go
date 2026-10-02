@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/scaffold"
+	"github.com/dottedmag/stdb-go/internal/scaffold"
 )
 
 func TestBuild_NameRequired(t *testing.T) {
@@ -102,7 +102,7 @@ func TestGenerate_Server(t *testing.T) {
 	// Check main.go contents
 	mainGo, err := os.ReadFile(filepath.Join(outDir, "main.go"))
 	require.NoError(t, err)
-	assert.Contains(t, string(mainGo), "go:generate go run go.digitalxero.dev/stdb-go")
+	assert.Contains(t, string(mainGo), "go:generate go run github.com/dottedmag/stdb-go")
 	// The directive parser skips main.go entirely, so directives there would
 	// be silently ignored — the init hook must live in a parsed file instead.
 	assert.NotContains(t, string(mainGo), "//stdb:")

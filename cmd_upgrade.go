@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-go/internal/upgrade"
+	"github.com/dottedmag/stdb-go/internal/upgrade"
 )
 
 func newUpgradeCmd() *cobra.Command {

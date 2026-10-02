@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/clientgen"
+	"github.com/dottedmag/stdb-go/internal/clientgen"
 )
 
 var update = flag.Bool("update", false, "update golden files")

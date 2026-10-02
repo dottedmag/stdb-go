@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.digitalxero.dev/stdb-go/internal/parser"
+	"github.com/dottedmag/stdb-go/internal/parser"
 )
 
 // generateModuleDef generates the stdbDescribeModule function that builds the

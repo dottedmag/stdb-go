@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	agentskills "go.digitalxero.dev/stdb-go/agent_skills"
-	"go.digitalxero.dev/stdb-go/internal/skills"
+	agentskills "github.com/dottedmag/stdb-go/agent_skills"
+	"github.com/dottedmag/stdb-go/internal/skills"
 )
 
 func newSkillsCmd() *cobra.Command {

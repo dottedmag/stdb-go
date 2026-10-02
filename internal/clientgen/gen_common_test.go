@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"go.digitalxero.dev/stdb-go/internal/clientgen"
+	"github.com/dottedmag/stdb-go/internal/clientgen"
 )
 
 func TestToGoName(t *testing.T) {

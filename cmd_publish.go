@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-go/internal/publish"
+	"github.com/dottedmag/stdb-go/internal/publish"
 )
 
 func newPublishCmd() *cobra.Command {

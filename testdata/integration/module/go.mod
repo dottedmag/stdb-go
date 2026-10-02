@@ -1,4 +1,4 @@
-module go.digitalxero.dev/stdb-go/testdata/integration/module
+module github.com/dottedmag/stdb-go/testdata/integration/module
 
 go 1.25.0
 

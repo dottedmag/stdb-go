@@ -7,7 +7,7 @@ description: 'Use whenever writing, reviewing, or debugging SpacetimeDB server m
 
 ## How it works
 
-A SpacetimeDB Go module is plain Go annotated with `//stdb:` comment directives and `stdb:"..."` struct tags. The `stdb-go` code generator (`go.digitalxero.dev/stdb-go`) parses those annotations and emits `stdb_generated.go` containing BSATN codecs, table handles, reducer/procedure/view dispatch, and the module schema. `stdb-go build` then compiles everything to WASM (`GOOS=wasip1 GOARCH=wasm`). You write types and functions; the generator writes all the glue.
+A SpacetimeDB Go module is plain Go annotated with `//stdb:` comment directives and `stdb:"..."` struct tags. The `stdb-go` code generator (`github.com/dottedmag/stdb-go`) parses those annotations and emits `stdb_generated.go` containing BSATN codecs, table handles, reducer/procedure/view dispatch, and the module schema. `stdb-go build` then compiles everything to WASM (`GOOS=wasip1 GOARCH=wasm`). You write types and functions; the generator writes all the glue.
 
 The runtime library is `go.digitalxero.dev/spacetimedb-server` (contexts, tables, sys, auth, http, log). NEVER use `github.com/clockworklabs/...` import paths — they do not exist for this SDK.
 
@@ -28,7 +28,7 @@ Rules that break silently if violated:
 - **Go 1.25+** is required (`wasip1` + `go:wasmexport`). Build with the standard toolchain, never TinyGo.
 - The module root is `package main` with an **empty** `func main() {}` (required for `-buildmode=c-shared` WASM).
 - `main.go` is **skipped by the directive parser**. A `//stdb:` directive in `main.go` is silently ignored — put directives in other files (`types.go`, `reducers.go`, ...). Also skipped: `*_test.go`, `*_generated.go`, `vendor/`, `testdata/`, dot-dirs.
-- Put `//go:generate go run go.digitalxero.dev/stdb-go` in main.go so `go generate ./...` works.
+- Put `//go:generate go run github.com/dottedmag/stdb-go` in main.go so `go generate ./...` works.
 - Directives may also live in nested packages (multi-package modules) — see the reference for the extra rules (exported functions, no nested `package main`).
 
 ## Directive quick reference

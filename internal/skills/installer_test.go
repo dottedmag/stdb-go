@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/skills"
+	"github.com/dottedmag/stdb-go/internal/skills"
 )
 
 func testFS() fstest.MapFS {

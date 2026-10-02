@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	agentskills "go.digitalxero.dev/stdb-go/agent_skills"
+	agentskills "github.com/dottedmag/stdb-go/agent_skills"
 )
 
 func TestFS_ContainsAllSkillFiles(t *testing.T) {

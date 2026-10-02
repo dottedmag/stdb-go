@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-go/internal/wasishim"
+	"github.com/dottedmag/stdb-go/internal/wasishim"
 )
 
 func newBuildCmd() *cobra.Command {

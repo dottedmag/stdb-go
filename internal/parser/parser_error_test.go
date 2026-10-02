@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/parser"
+	"github.com/dottedmag/stdb-go/internal/parser"
 )
 
 // errWriteFile is a test helper that writes content to a file in the given directory.

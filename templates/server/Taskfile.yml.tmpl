@@ -14,9 +14,9 @@ tasks:
   build:
     desc: Build the WASM module
     cmds:
-      - go run go.digitalxero.dev/stdb-go build
+      - go run github.com/dottedmag/stdb-go build
 
   publish:
     desc: Publish to SpacetimeDB
     cmds:
-      - go run go.digitalxero.dev/stdb-go publish {{"{{"}}{{".CLI_ARGS"}}{{"}}"}}
+      - go run github.com/dottedmag/stdb-go publish {{"{{"}}{{".CLI_ARGS"}}{{"}}"}}

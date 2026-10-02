@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-go/internal/scaffold"
+	"github.com/dottedmag/stdb-go/internal/scaffold"
 )
 
 func newInitCmd() *cobra.Command {

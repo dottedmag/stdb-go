@@ -16,13 +16,13 @@ tasks:
     desc: Build the server WASM module
     dir: server
     cmds:
-      - go run go.digitalxero.dev/stdb-go build
+      - go run github.com/dottedmag/stdb-go build
 
   server:publish:
     desc: Publish server to SpacetimeDB
     dir: server
     cmds:
-      - go run go.digitalxero.dev/stdb-go publish {{"{{"}}{{".CLI_ARGS"}}{{"}}"}}
+      - go run github.com/dottedmag/stdb-go publish {{"{{"}}{{".CLI_ARGS"}}{{"}}"}}
 
   client:run:
     desc: Run the client

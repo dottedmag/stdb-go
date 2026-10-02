@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/publish"
+	"github.com/dottedmag/stdb-go/internal/publish"
 )
 
 func envOrDefault(key, def string) string {

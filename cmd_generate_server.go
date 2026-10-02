@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.digitalxero.dev/stdb-go/internal/parser"
-	"go.digitalxero.dev/stdb-go/internal/servergen"
+	"github.com/dottedmag/stdb-go/internal/parser"
+	"github.com/dottedmag/stdb-go/internal/servergen"
 )
 
 func newGenerateServerCmd() *cobra.Command {

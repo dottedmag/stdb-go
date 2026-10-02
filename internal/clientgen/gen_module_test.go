@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.digitalxero.dev/stdb-go/internal/clientgen"
+	"github.com/dottedmag/stdb-go/internal/clientgen"
 )
 
 func TestGenerateModule_EmptySchema(t *testing.T) {

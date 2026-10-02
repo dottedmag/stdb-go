@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"go.digitalxero.dev/stdb-go/internal/parser"
+	"github.com/dottedmag/stdb-go/internal/parser"
 )
 
 // generateTables generates table accessor types and their methods.

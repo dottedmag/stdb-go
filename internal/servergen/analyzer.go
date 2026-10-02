@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"go.digitalxero.dev/stdb-go/internal/parser"
+	"github.com/dottedmag/stdb-go/internal/parser"
 )
 
 // AnalyzedModule is the fully resolved module ready for code generation.

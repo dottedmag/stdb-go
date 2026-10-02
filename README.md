@@ -13,13 +13,13 @@ This replaces reflection-based approaches with compile-time code generation, pro
 ## Installation
 
 ```bash
-go install go.digitalxero.dev/stdb-go@latest
+go install github.com/dottedmag/stdb-go@latest
 ```
 
 Or add it as a tool dependency:
 
 ```bash
-go get go.digitalxero.dev/stdb-go
+go get github.com/dottedmag/stdb-go
 ```
 
 ## Quick Start
@@ -27,7 +27,7 @@ go get go.digitalxero.dev/stdb-go
 1. Add a `go:generate` directive to any `.go` file in your SpacetimeDB module package:
 
 ```go
-//go:generate go run go.digitalxero.dev/stdb-go
+//go:generate go run github.com/dottedmag/stdb-go
 ```
 
 2. Annotate your types and functions with `//stdb:` directives:
